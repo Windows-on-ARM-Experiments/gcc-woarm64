@@ -103,7 +103,7 @@ arm*-*-*)
 	;;
 avr-*-*)
 	cpu_type=avr
-	;;    
+	;;
 bfin*-*)
 	cpu_type=bfin
 	;;
@@ -413,6 +413,36 @@ aarch64*-*-vxworks7*)
 	tmake_file="${tmake_file} ${cpu_type}/t-lse"
 	tmake_file="${tmake_file} ${cpu_type}/t-softfp t-softfp t-crtfm"
 	tmake_file="${tmake_file} t-dfprules"
+	;;
+aarch64-*-mingw*)
+	case ${target_thread_file} in
+	  win32)
+	    tmake_file="$tmake_file i386/t-gthr-win32"
+	    ;;
+	  posix)
+	    tmake_file="i386/t-mingw-pthread $tmake_file"
+	    ;;
+	esac
+	# This has to match the logic for DWARF2_UNWIND_INFO in gcc/config/i386/cygming.h
+	if test x$ac_cv_sjlj_exceptions = xyes; then
+		tmake_eh_file="i386/t-sjlj-eh"
+	else
+		tmake_eh_file="i386/t-seh-eh"
+	fi
+	# Shared libgcc DLL install dir depends on cross/native build.
+	if test x${build} = x${host} ; then
+		tmake_dlldir_file="i386/t-dlldir"
+	else
+		tmake_dlldir_file="i386/t-dlldir-x"
+	fi
+	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_dlldir_file} i386/t-slibgcc-cygming i386/t-cygming i386/t-mingw32 t-dfprules t-crtfm" # i386/t-chkstk
+	tmake_file="${tmake_file} ${cpu_type}/t-aarch64"
+	tmake_file="${tmake_file} ${cpu_type}/t-lse t-slibgcc-libgcc"
+	tmake_file="${tmake_file} ${cpu_type}/t-softfp t-softfp t-crtfm"
+	extra_parts="$extra_parts crtbegin.o crtend.o crtfastmath.o"
+	if test x$enable_vtable_verify = xyes; then
+		extra_parts="$extra_parts vtv_start.o vtv_end.o vtv_start_preinit.o vtv_end_preinit.o"
+	fi
 	;;
 alpha*-*-linux*)
 	tmake_file="${tmake_file} alpha/t-alpha alpha/t-ieee t-crtfm alpha/t-linux"

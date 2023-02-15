@@ -14,6 +14,7 @@ case $machine in
     i?86-*-cygwin* | \
     i?86-*-mingw32* | \
     x86_64-*-mingw32* | \
+    aarch64-*-mingw32* | \
     powerpc-*-eabisim* | \
     powerpc-*-eabi*    | \
     powerpc-*-rtems*   | \
