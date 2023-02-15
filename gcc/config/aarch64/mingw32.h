@@ -94,7 +94,8 @@ along with GCC; see the file COPYING3.  If not see
         fvtable-verify=std:-lvtv -lpsapi} " \
                  "-ladvapi32 -lshell32 -luser32 -lkernel32"
 
-#define LINK_SPEC "%{mwindows:--subsystem windows} \
+#define LINK_SPEC "-m arm64pe \
+  %{mwindows:--subsystem windows} \
   %{mconsole:--subsystem console} \
   %{shared: %{mdll: %eshared and mdll are not compatible}} \
   %{shared: --shared} %{mdll:--dll} \
