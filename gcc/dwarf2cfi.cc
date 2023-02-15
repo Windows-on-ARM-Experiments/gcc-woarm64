@@ -56,7 +56,7 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef DEFAULT_INCOMING_FRAME_SP_OFFSET
 #define DEFAULT_INCOMING_FRAME_SP_OFFSET INCOMING_FRAME_SP_OFFSET
 #endif
-
+
 /* A collected description of an entire row of the abstract CFI table.  */
 struct GTY(()) dw_cfi_row
 {
@@ -231,7 +231,7 @@ static bool any_cfis_emitted;
 /* Short-hand for commonly used register numbers.  */
 static struct cfa_reg dw_stack_pointer_regnum;
 static struct cfa_reg dw_frame_pointer_regnum;
-
+
 /* Hook used by __throw.  */
 
 rtx
@@ -282,7 +282,7 @@ void init_one_dwarf_reg_size (int regno, machine_mode regmode,
   const unsigned int dnum = DWARF_FRAME_REGNUM (regno);
   const unsigned int rnum = DWARF2_FRAME_REG_OUT (dnum, 1);
   const unsigned int dcol = DWARF_REG_TO_UNWIND_COLUMN (rnum);
-  
+
   poly_int64 slotoffset = dcol * GET_MODE_SIZE (slotmode);
   poly_int64 regsize = GET_MODE_SIZE (regmode);
 
@@ -360,7 +360,7 @@ expand_builtin_init_dwarf_reg_sizes (tree address)
   targetm.init_dwarf_reg_sizes_extra (address);
 }
 
-
+
 static dw_trace_info *
 get_trace_info (rtx_insn *insn)
 {
@@ -2620,7 +2620,7 @@ maybe_record_trace_start_abnormal (rtx_insn *start, rtx_insn *origin)
 
       cur_row->cfa.offset += delta;
     }
-  
+
   maybe_record_trace_start (start, origin);
 
   cur_trace->end_true_args_size = save_args_size;
@@ -3016,7 +3016,7 @@ connect_traces (void)
 		 start of the trace, we can wind up increasing the
 		 size of the unwind info due to extra advance opcodes.
 		 Instead, put the remember immediately before the next
-		 state change.  We know there must be one, because the 
+		 state change.  We know there must be one, because the
 		 state at the beginning and head of the trace differ.  */
 	      add_cfi_insn = before_next_cfi_note (prev_ti->head);
 	      cfi = new_cfi ();
@@ -3325,7 +3325,7 @@ execute_dwarf2_frame (void)
 
   return 0;
 }
-
+
 /* Convert a DWARF call frame info. operation to its string name */
 
 static const char *
@@ -3692,7 +3692,7 @@ debug_cfi_row (dw_cfi_row *row)
 {
   dump_cfi_row (stderr, row);
 }
-
+
 
 /* Save the result of dwarf2out_do_frame across PCH.
    This variable is tri-state, with 0 unset, >0 true, <0 false.  */
@@ -3739,6 +3739,8 @@ bool
 dwarf2out_do_cfi_asm (void)
 {
   int enc;
+
+  return false; // FIXME
 
   if (saved_do_cfi_asm != 0)
     return saved_do_cfi_asm > 0;

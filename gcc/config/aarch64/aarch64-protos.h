@@ -614,7 +614,7 @@ struct aarch64_address_info {
 };
 
 #define AARCH64_FUSION_PAIR(x, name) \
-  AARCH64_FUSE_##name##_index, 
+  AARCH64_FUSE_##name##_index,
 /* Supported fusion operations.  */
 enum aarch64_fusion_pairs_index
 {
@@ -1072,5 +1072,10 @@ extern bool aarch64_harden_sls_blr_p (void);
 extern void aarch64_output_patchable_area (unsigned int, bool);
 
 extern void aarch64_adjust_reg_alloc_order ();
+
+extern tree aarch64_handle_selectany_attribute (tree *, tree, tree, int, bool *);
+extern unsigned int aarch64_pe_section_type_flags (tree, const char *, int);
+extern void aarch64_pe_unique_section (tree, int);
+extern void aarch64_pe_encode_section_info (tree, rtx, int);
 
 #endif /* GCC_AARCH64_PROTOS_H */

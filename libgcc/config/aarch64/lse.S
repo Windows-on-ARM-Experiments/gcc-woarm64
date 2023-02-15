@@ -58,7 +58,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #endif
 
 /* Declare the symbol gating the LSE implementations.  */
-	.hidden	__aarch64_have_lse_atomics
+	# .hidden	__aarch64_have_lse_atomics
 
 /* Turn size and memory model defines into mnemonic fragments.  */
 #if SIZE == 1
@@ -168,16 +168,16 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 	.text
 	.balign	16
 	.globl	\name
-	.hidden	\name
-	.type	\name, %function
-	.cfi_startproc
+	# .hidden	\name
+	# .type	\name, %function
+	# .cfi_startproc
 \name:
 	BTI_C
 .endm
 
 .macro	ENDFN name
-	.cfi_endproc
-	.size	\name, . - \name
+	# .cfi_endproc
+	# .size	\name, . - \name
 .endm
 
 /* Branch to LABEL if LSE is disabled.  */
