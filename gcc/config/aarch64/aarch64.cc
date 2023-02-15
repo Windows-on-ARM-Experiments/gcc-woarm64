@@ -859,7 +859,16 @@ static const attribute_spec aarch64_gnu_attributes[] =
 			  NULL },
   { "Advanced SIMD type", 1, 1, false, true,  false, true,  NULL, NULL },
   { "SVE type",		  3, 3, false, true,  false, true,  NULL, NULL },
-  { "SVE sizeless type",  0, 0, false, true,  false, true,  NULL, NULL }
+  { "SVE sizeless type",  0, 0, false, true,  false, true,  NULL, NULL },
+  { "cdecl", 		  0, 0, false, false, false, false, NULL, NULL },
+  { "stdcall", 		  0, 0, false, false, false, false, NULL, NULL },
+#if TARGET_DLLIMPORT_DECL_ATTRIBUTES
+  { "dllimport", 0, 0, false, false, false, false, handle_dll_attribute, NULL },
+  { "dllexport", 0, 0, false, false, false, false, handle_dll_attribute, NULL },
+#endif
+#ifdef SUBTARGET_ATTRIBUTE_TABLE
+  SUBTARGET_ATTRIBUTE_TABLE
+#endif
 };
 
 static const scoped_attribute_specs aarch64_gnu_attribute_table =
@@ -2816,6 +2825,184 @@ tls_symbolic_operand_type (rtx addr)
   return tls_kind;
 }
 
+/* Create or return the unique __imp_DECL dllimport symbol corresponding
+   to symbol DECL if BEIMPORT is true.  Otherwise create or return the
+   unique refptr-DECL symbol corresponding to symbol DECL.  */
+
+struct dllimport_hasher : ggc_cache_ptr_hash<tree_map>
+{
+  static inline hashval_t hash (tree_map *m) { return m->hash; }
+  static inline bool
+  equal (tree_map *a, tree_map *b)
+  {
+    return a->base.from == b->base.from;
+  }
+
+  static int
+  keep_cache_entry (tree_map *&m)
+  {
+    return ggc_marked_p (m->base.from);
+  }
+};
+
+static GTY((cache)) hash_table<dllimport_hasher> *dllimport_map;
+
+static tree
+get_dllimport_decl (tree decl, bool beimport)
+{
+  struct tree_map *h, in;
+  const char *name;
+  const char *prefix;
+  size_t namelen, prefixlen;
+  char *imp_name;
+  tree to;
+  rtx rtl;
+
+  if (!dllimport_map)
+    dllimport_map = hash_table<dllimport_hasher>::create_ggc (512);
+
+  in.hash = htab_hash_pointer (decl);
+  in.base.from = decl;
+  tree_map **loc = dllimport_map->find_slot_with_hash (&in, in.hash, INSERT);
+  h = *loc;
+  if (h)
+    return h->to;
+
+  *loc = h = ggc_alloc<tree_map> ();
+  h->hash = in.hash;
+  h->base.from = decl;
+  h->to = to = build_decl (DECL_SOURCE_LOCATION (decl),
+			   VAR_DECL, NULL, ptr_type_node);
+  DECL_ARTIFICIAL (to) = 1;
+  DECL_IGNORED_P (to) = 1;
+  DECL_EXTERNAL (to) = 1;
+  TREE_READONLY (to) = 1;
+
+  name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
+  name = targetm.strip_name_encoding (name);
+  if (beimport)
+    prefix = user_label_prefix[0] == 0 ? "*__imp_" : "*__imp__";
+  else
+    prefix = user_label_prefix[0] == 0 ? "*.refptr." : "*refptr.";
+  namelen = strlen (name);
+  prefixlen = strlen (prefix);
+  imp_name = (char *) alloca (namelen + prefixlen + 1);
+  memcpy (imp_name, prefix, prefixlen);
+  memcpy (imp_name + prefixlen, name, namelen + 1);
+
+  name = ggc_alloc_string (imp_name, namelen + prefixlen);
+  rtl = gen_rtx_SYMBOL_REF (Pmode, name);
+  SET_SYMBOL_REF_DECL (rtl, to);
+  SYMBOL_REF_FLAGS (rtl) = SYMBOL_FLAG_LOCAL | SYMBOL_FLAG_STUBVAR;
+  if (!beimport)
+    {
+      SYMBOL_REF_FLAGS (rtl) |= SYMBOL_FLAG_EXTERNAL;
+#ifdef SUB_TARGET_RECORD_STUB
+      SUB_TARGET_RECORD_STUB (name);
+#endif
+    }
+
+  rtl = gen_const_mem (Pmode, rtl);
+  // set_mem_alias_set (rtl, ix86_GOT_alias_set ()); // FIXME?
+
+  SET_DECL_RTL (to, rtl);
+  SET_DECL_ASSEMBLER_NAME (to, get_identifier (name));
+
+  return to;
+}
+
+/* Expand SYMBOL into its corresponding far-address symbol.
+   WANT_REG is true if we require the result be a register.  */
+
+static rtx
+legitimize_pe_coff_extern_decl (rtx symbol, bool want_reg)
+{
+  tree imp_decl;
+  rtx x;
+
+  gcc_assert (SYMBOL_REF_DECL (symbol));
+  imp_decl = get_dllimport_decl (SYMBOL_REF_DECL (symbol), false);
+
+  x = DECL_RTL (imp_decl);
+  if (want_reg)
+    x = force_reg (Pmode, x);
+  return x;
+}
+
+/* Expand SYMBOL into its corresponding dllimport symbol.  WANT_REG is
+   true if we require the result be a register.  */
+
+static rtx
+legitimize_dllimport_symbol (rtx symbol, bool want_reg)
+{
+  tree imp_decl;
+  rtx x;
+
+  gcc_assert (SYMBOL_REF_DECL (symbol));
+  imp_decl = get_dllimport_decl (SYMBOL_REF_DECL (symbol), true);
+
+  x = DECL_RTL (imp_decl);
+  if (want_reg)
+    x = force_reg (Pmode, x);
+  return x;
+}
+
+/*  Nonzero if the symbol is marked as dllimport, or as stub-variable,
+    otherwise zero.  */
+
+static bool
+is_imported_p (rtx x)
+{
+  if (!TARGET_DLLIMPORT_DECL_ATTRIBUTES
+      || GET_CODE (x) != SYMBOL_REF)
+    return false;
+
+  return SYMBOL_REF_DLLIMPORT_P (x) || SYMBOL_REF_STUBVAR_P (x);
+}
+
+/* Expand SYMBOL into its corresponding dllimport or refptr symbol.  WANT_REG
+   is true if we require the result be a register.  */
+
+rtx
+legitimize_pe_coff_symbol (rtx addr, bool inreg)
+{
+  if (!TARGET_PECOFF)
+    return NULL_RTX;
+
+  if (TARGET_DLLIMPORT_DECL_ATTRIBUTES)
+    {
+      // fprintf(stderr, "ref flags = %x (%x) (%s)\n", SYMBOL_REF_FLAGS (addr), SYMBOL_FLAG_DLLIMPORT, IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (SYMBOL_REF_DECL(addr))));
+      if (GET_CODE (addr) == SYMBOL_REF && SYMBOL_REF_DLLIMPORT_P (addr))
+	return legitimize_dllimport_symbol (addr, inreg);
+      if (GET_CODE (addr) == CONST
+	  && GET_CODE (XEXP (addr, 0)) == PLUS
+	  && GET_CODE (XEXP (XEXP (addr, 0), 0)) == SYMBOL_REF
+	  && SYMBOL_REF_DLLIMPORT_P (XEXP (XEXP (addr, 0), 0)))
+	{
+	  rtx t = legitimize_dllimport_symbol (XEXP (XEXP (addr, 0), 0), inreg);
+	  return gen_rtx_PLUS (Pmode, t, XEXP (XEXP (addr, 0), 1));
+	}
+    }
+
+  // if (GET_CODE (addr) == SYMBOL_REF
+  //     && !is_imported_p (addr)
+  //     && SYMBOL_REF_EXTERNAL_P (addr)
+  //     && SYMBOL_REF_DECL (addr))
+  //   return legitimize_pe_coff_extern_decl (addr, inreg);
+  //
+  // if (GET_CODE (addr) == CONST
+  //     && GET_CODE (XEXP (addr, 0)) == PLUS
+  //     && GET_CODE (XEXP (XEXP (addr, 0), 0)) == SYMBOL_REF
+  //     && !is_imported_p (XEXP (XEXP (addr, 0), 0))
+  //     && SYMBOL_REF_EXTERNAL_P (XEXP (XEXP (addr, 0), 0))
+  //     && SYMBOL_REF_DECL (XEXP (XEXP (addr, 0), 0)))
+  //   {
+  //     rtx t = legitimize_pe_coff_extern_decl (XEXP (XEXP (addr, 0), 0), inreg);
+  //     return gen_rtx_PLUS (Pmode, t, XEXP (XEXP (addr, 0), 1));
+  //   }
+  return NULL_RTX;
+}
+
 /* We'll allow lo_sum's in addresses in our legitimate addresses
    so that combine would take care of combining addresses where
    necessary, but for generation purposes, we'll generate the address
@@ -2862,6 +3049,13 @@ static void
 aarch64_load_symref_appropriately (rtx dest, rtx imm,
 				   enum aarch64_symbol_type type)
 {
+  // fprintf(stderr, "aarch64_load_symref_appropriately\n");
+
+  // rtx tmp = legitimize_pe_coff_symbol (imm, false);
+  //
+  // if (tmp)
+  //   imm = tmp;
+
   switch (type)
     {
     case SYMBOL_SMALL_ABSOLUTE:
@@ -11230,6 +11424,13 @@ aarch64_expand_call (rtx result, rtx mem, rtx cookie, bool sibcall)
 
   gcc_assert (MEM_P (mem));
   callee = XEXP (mem, 0);
+
+  // FIXME?
+  // tmp = legitimize_pe_coff_symbol (callee, false);
+
+  // if (tmp)
+    // callee = tmp;
+
   mode = GET_MODE (callee);
   gcc_assert (mode == Pmode);
 
@@ -12706,6 +12907,13 @@ aarch64_anchor_offset (HOST_WIDE_INT offset, HOST_WIDE_INT size,
 static rtx
 aarch64_legitimize_address (rtx x, rtx /* orig_x  */, machine_mode mode)
 {
+  // if (TARGET_DLLIMPORT_DECL_ATTRIBUTES)
+  //   {
+  //     rtx tmp = legitimize_pe_coff_symbol (x, true);
+  //     if (tmp)
+  //       return tmp;
+  //   }
+
   /* Try to split X+CONST into Y=X+(CONST & ~mask), Y+(CONST&mask),
      where mask is selected by alignment and size of the offset.
      We try to pick as large a range for the offset as possible to
@@ -24473,7 +24681,9 @@ aarch64_declare_function_name (FILE *stream, const char* name,
   aarch64_asm_output_variant_pcs (stream, fndecl, name);
 
   /* Don't forget the type directive for ELF.  */
+#ifdef ASM_OUTPUT_TYPE_DIRECTIVE
   ASM_OUTPUT_TYPE_DIRECTIVE (stream, name, "function");
+#endif
   ASM_OUTPUT_FUNCTION_LABEL (stream, name, fndecl);
 
   cfun->machine->label_is_assembled = true;
@@ -24539,7 +24749,9 @@ aarch64_asm_output_alias (FILE *stream, const tree decl, const tree target)
   const char *name = XSTR (XEXP (DECL_RTL (decl), 0), 0);
   const char *value = IDENTIFIER_POINTER (target);
   aarch64_asm_output_variant_pcs (stream, decl, name);
+#ifdef ASM_OUTPUT_DEF // FIXME?
   ASM_OUTPUT_DEF (stream, name, value);
+#endif
 }
 
 /* Implement ASM_OUTPUT_EXTERNAL.  Output .variant_pcs for undefined
@@ -29153,13 +29365,17 @@ aarch64_sls_emit_shared_blr_thunks (FILE *out_file)
       /* Only emits if the compiler is configured for an assembler that can
 	 handle visibility directives.  */
       targetm.asm_out.assemble_visibility (decl, VISIBILITY_HIDDEN);
+#ifdef ASM_OUTPUT_TYPE_DIRECTIVE
       ASM_OUTPUT_TYPE_DIRECTIVE (out_file, name, "function");
+#endif
       ASM_OUTPUT_LABEL (out_file, name);
       aarch64_sls_emit_function_stub (out_file, regnum);
       /* Use the most conservative target to ensure it can always be used by any
 	 function in the translation unit.  */
       asm_fprintf (out_file, "\tdsb\tsy\n\tisb\n");
+#ifdef ASM_DECLARE_FUNCTION_SIZE
       ASM_DECLARE_FUNCTION_SIZE (out_file, name, decl);
+#endif
     }
 }
 
@@ -30455,6 +30671,13 @@ aarch64_run_selftests (void)
 
 #undef TARGET_ASM_ALIGNED_SI_OP
 #define TARGET_ASM_ALIGNED_SI_OP "\t.word\t"
+
+#undef TARGET_ASM_UNALIGNED_HI_OP
+#define TARGET_ASM_UNALIGNED_HI_OP TARGET_ASM_ALIGNED_HI_OP
+#undef TARGET_ASM_UNALIGNED_SI_OP
+#define TARGET_ASM_UNALIGNED_SI_OP TARGET_ASM_ALIGNED_SI_OP
+#undef TARGET_ASM_UNALIGNED_DI_OP
+#define TARGET_ASM_UNALIGNED_DI_OP TARGET_ASM_ALIGNED_DI_OP
 
 #undef TARGET_ASM_CAN_OUTPUT_MI_THUNK
 #define TARGET_ASM_CAN_OUTPUT_MI_THUNK \
