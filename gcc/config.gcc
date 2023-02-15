@@ -1218,6 +1218,14 @@ aarch64*-*-mingw*)
 	extra_objs="${extra_objs} winnt.o"
 	tmake_file="${tmake_file} aarch64/t-cygming"
 	aarch64_multilibs="lp64"
+	case ${enable_threads} in
+	  "" | yes | win32)
+	    thread_file='win32'
+	    ;;
+	  posix)
+	    thread_file='posix'
+	    ;;
+	esac
 	TM_MULTILIB_CONFIG="${TM_MULTILIB_CONFIG},lp64"
 	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
 	;;
