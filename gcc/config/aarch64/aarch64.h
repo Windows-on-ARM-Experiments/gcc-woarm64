@@ -628,7 +628,7 @@ enum class aarch64_feature : unsigned char {
 
 #define FP_SIMD_SAVED_REGNUM_P(REGNO)			\
   (((unsigned) (REGNO - V8_REGNUM)) <= (V23_REGNUM - V8_REGNUM))
-
+
 /* Register and constant classes.  */
 
 enum reg_class
@@ -745,7 +745,7 @@ extern enum aarch64_processor aarch64_tune;
 
 /* RTL generation support.  */
 #define INIT_EXPANDERS aarch64_init_expanders ()
-
+
 
 /* Stack layout; function entry, exit and calling.  */
 #define STACK_GROWS_DOWNWARD	1
@@ -965,7 +965,7 @@ typedef struct
 
 #define FUNCTION_ARG_REGNO_P(REGNO) \
   aarch64_function_arg_regno_p(REGNO)
-
+
 
 /* ISA Features.  */
 
@@ -1107,7 +1107,7 @@ typedef struct
 /* To start with.  */
 #define BRANCH_COST(SPEED_P, PREDICTABLE_P) \
   (aarch64_branch_cost (SPEED_P, PREDICTABLE_P))
-
+
 
 /* Assembly output.  */
 
@@ -1317,5 +1317,17 @@ extern poly_uint16 aarch64_sve_vg;
 ((T) == TRUNCATE					\
  || ((T) == US_TRUNCATE && (S) == LSHIFTRT)		\
  || ((T) == SS_TRUNCATE && (S) == ASHIFTRT))
+
+#define SYMBOL_FLAG_DLLIMPORT		(SYMBOL_FLAG_MACH_DEP << 0)
+#define SYMBOL_REF_DLLIMPORT_P(X) \
+	((SYMBOL_REF_FLAGS (X) & SYMBOL_FLAG_DLLIMPORT) != 0)
+
+#define SYMBOL_FLAG_DLLEXPORT		(SYMBOL_FLAG_MACH_DEP << 1)
+#define SYMBOL_REF_DLLEXPORT_P(X) \
+	((SYMBOL_REF_FLAGS (X) & SYMBOL_FLAG_DLLEXPORT) != 0)
+
+#define SYMBOL_FLAG_STUBVAR	(SYMBOL_FLAG_MACH_DEP << 2)
+#define SYMBOL_REF_STUBVAR_P(X) \
+	((SYMBOL_REF_FLAGS (X) & SYMBOL_FLAG_STUBVAR) != 0)
 
 #endif /* GCC_AARCH64_H */

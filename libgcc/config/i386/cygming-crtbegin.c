@@ -134,8 +134,9 @@ __gcc_register_frame (void)
     }
   else
     {
-      register_frame_fn = __register_frame_info;
-      deregister_frame_fn = __deregister_frame_info;
+      // FIXME
+      // register_frame_fn = __register_frame_info;
+      // deregister_frame_fn = __deregister_frame_info;
     }
   if (register_frame_fn)
      register_frame_fn (__EH_FRAME_BEGIN__, &obj);

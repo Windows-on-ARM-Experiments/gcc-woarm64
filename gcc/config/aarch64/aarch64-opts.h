@@ -122,4 +122,11 @@ enum aarch64_ldp_stp_policy {
   AARCH64_LDP_STP_POLICY_NEVER
 };
 
+/* Available call abi.  */
+enum calling_abi
+{
+  SYSV_ABI = 0,
+  MS_ABI = 1
+};
+
 #endif
