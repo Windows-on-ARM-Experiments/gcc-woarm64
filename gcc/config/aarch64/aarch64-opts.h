@@ -131,4 +131,11 @@ enum aarch64_early_ra_scope {
   AARCH64_EARLY_RA_NONE
 };
 
+/* Available call abi.  */
+enum calling_abi
+{
+  SYSV_ABI = 0,
+  MS_ABI = 1
+};
+
 #endif
