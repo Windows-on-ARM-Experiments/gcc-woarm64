@@ -11559,10 +11559,11 @@ aarch64_expand_call (rtx result, rtx mem, rtx callee_abi, bool sibcall)
   gcc_assert (MEM_P (mem));
   callee = XEXP (mem, 0);
 
-  tmp = legitimize_pe_coff_symbol (callee, false);
+  // FIXME?
+  // tmp = legitimize_pe_coff_symbol (callee, false);
 
-  if (tmp)
-    callee = tmp;
+  // if (tmp)
+    // callee = tmp;
 
   mode = GET_MODE (callee);
   gcc_assert (mode == Pmode);
