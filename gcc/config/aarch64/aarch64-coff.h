@@ -26,6 +26,17 @@
 #define LOCAL_LABEL_PREFIX 	""
 #endif
 
+/* Using long long breaks -ansi and -std=c90, so these will need to be
+   made conditional for an LLP64 ABI.  */
+#undef SIZE_TYPE
+#undef PTRDIFF_TYPE
+#define SIZE_TYPE	"long long unsigned int"
+#define PTRDIFF_TYPE	"long long int"
+
+#define TARGET_64BIT 1
+#undef LONG_TYPE_SIZE
+#define LONG_TYPE_SIZE 32
+
 #ifndef ASM_GENERATE_INTERNAL_LABEL
 #define ASM_GENERATE_INTERNAL_LABEL(STRING, PREFIX, NUM)  \
   sprintf (STRING, "*%s%s%u", LOCAL_LABEL_PREFIX, PREFIX, (unsigned int)(NUM))

@@ -27,6 +27,9 @@ along with GCC; see the file COPYING3.  If not see
 #define PREFERRED_DEBUGGING_TYPE DWARF2_DEBUG
 
 #include <stdbool.h>
+#ifdef __MINGW32__
+#include <stdio.h>
+#endif
 
 #define TARGET_ASM_NAMED_SECTION  aarch64_pe_asm_named_section
 
@@ -188,5 +191,8 @@ extern void aarch64_pe_declare_function_type (FILE *, const char *, int);
 #define TARGET_PECOFF 1
 
 #define TARGET_ENCODE_SECTION_INFO  aarch64_pe_encode_section_info
+
+#undef MAX_OFILE_ALIGNMENT
+#define MAX_OFILE_ALIGNMENT (8192 * 8)
 
 #endif

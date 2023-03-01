@@ -74,7 +74,7 @@
 #define _GLIBCXX_CDTOR_CALLABI __thiscall
 #endif
 
-#ifdef __x86_64__
+#if defined (__x86_64__) || defined (__aarch64__)
 #define _GLIBCXX_LLP64 1
 // See libstdc++/69506
 #define _GLIBCXX_USE_WEAK_REF 0
