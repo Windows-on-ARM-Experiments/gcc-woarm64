@@ -1207,12 +1207,14 @@ aarch64*-*-linux*)
 aarch64*-*-mingw*)
 # 	tm_file="${tm_file} dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h"
 # 	tm_file="${tm_file} aarch64/aarch64-elf.h aarch64/aarch64-errata.h aarch64/aarch64-linux.h"
-# 	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h"
-	tm_file="${tm_file} dbxcoff.h glibc-stdint.h" # FIXME?
-	tm_file="${tm_file} aarch64/aarch64-coff.h aarch64/cygming.h"
+# 	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h"	
+	tm_file="${tm_file} aarch64/aarch64-coff.h"
+	tm_file="${tm_file} aarch64/cygming.h"
 	tm_file="${tm_file} aarch64/mingw32.h"
+	tm_file="${tm_file} aarch64/mingw-stdint.h"	
 	tmake_file="${tmake_file} aarch64/t-aarch64" # aarch64/t-aarch64-linux"
 # 	tm_defines="${tm_defines}  TARGET_DEFAULT_ASYNC_UNWIND_TABLES=1"
+	user_headers_inc_next_post="${user_headers_inc_next_post} float.h"
 	target_gtfiles="$target_gtfiles \$(srcdir)/config/aarch64/winnt.cc"
 	extra_options="${extra_options} aarch64/cygming.opt aarch64/mingw.opt"
 	extra_objs="${extra_objs} winnt.o"

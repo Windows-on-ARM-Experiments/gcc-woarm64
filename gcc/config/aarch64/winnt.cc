@@ -232,6 +232,26 @@ aarch64_pe_section_type_flags (tree decl, const char *, int reloc)
   return flags;
 }
 
+/* Also strip the fastcall prefix and stdcall suffix.  */
+
+const char *
+aarch64_pe_strip_name_encoding_full (const char *str)
+{
+  const char *p;
+  const char *name = default_strip_name_encoding (str);
+
+  /* Strip leading '@' on fastcall symbols.  */
+  if (*name == '@')
+    name++;
+
+  /* Strip trailing "@n".  */
+  p = strchr (name, '@');
+  if (p)
+    return ggc_alloc_string (name, p - name);
+
+  return name;
+}
+
 void
 aarch64_pe_unique_section (tree decl, int reloc)
 {
@@ -244,8 +264,7 @@ aarch64_pe_unique_section (tree decl, int reloc)
   if (!flag_writable_rel_rdata)
     reloc = 0;
   name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
-  // FIXME - not applicable for aarch64?
-  // name = aarch64_pe_strip_name_encoding_full (name);
+  name = aarch64_pe_strip_name_encoding_full (name);
 
   /* The object is put in, for example, section .text$foo.
      The linker will then ultimately place them in .text
