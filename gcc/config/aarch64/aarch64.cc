@@ -12697,6 +12697,12 @@ aarch64_label_mentioned_p (rtx x)
   return 0;
 }
 
+void
+aarch64_print_reg (rtx x, int code, FILE *file)
+{
+  aarch64_print_operand (file, x, code);
+}
+
 /* Implement REGNO_REG_CLASS.  */
 
 enum reg_class
@@ -22880,6 +22886,9 @@ aarch64_declare_function_name (FILE *stream, const char* name,
   /* Don't forget the type directive for ELF.  */
 #ifdef ASM_OUTPUT_TYPE_DIRECTIVE
   ASM_OUTPUT_TYPE_DIRECTIVE (stream, name, "function");
+#endif
+#ifdef SUBTARGET_ASM_UNWIND_INIT
+  SUBTARGET_ASM_UNWIND_INIT (stream);
 #endif
   ASM_OUTPUT_LABEL (stream, name);
 

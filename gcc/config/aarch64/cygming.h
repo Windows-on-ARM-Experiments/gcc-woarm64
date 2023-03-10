@@ -26,6 +26,33 @@ along with GCC; see the file COPYING3.  If not see
 #undef PREFERRED_DEBUGGING_TYPE
 #define PREFERRED_DEBUGGING_TYPE DWARF2_DEBUG
 
+
+/* Support hooks for SEH.  */
+#undef  TARGET_ASM_UNWIND_EMIT
+#define TARGET_ASM_UNWIND_EMIT  aarch64_pe_seh_unwind_emit
+#undef  TARGET_ASM_UNWIND_EMIT_BEFORE_INSN
+#define TARGET_ASM_UNWIND_EMIT_BEFORE_INSN  false
+#undef  TARGET_ASM_FUNCTION_END_PROLOGUE
+#define TARGET_ASM_FUNCTION_END_PROLOGUE  aarch64_pe_seh_end_prologue
+#undef  TARGET_ASM_EMIT_EXCEPT_PERSONALITY
+#define TARGET_ASM_EMIT_EXCEPT_PERSONALITY aarch64_pe_seh_emit_except_personality
+#undef  TARGET_ASM_INIT_SECTIONS
+#define TARGET_ASM_INIT_SECTIONS  aarch64_pe_seh_init_sections
+#define SUBTARGET_ASM_UNWIND_INIT  aarch64_pe_seh_init
+
+#undef DEFAULT_ABI
+#define DEFAULT_ABI (TARGET_64BIT ? MS_ABI : SYSV_ABI)
+
+#undef TARGET_PECOFF
+#define TARGET_PECOFF 1
+
+// #if ! defined (USE_MINGW64_LEADING_UNDERSCORES)
+// #undef USER_LABEL_PREFIX
+// #define USER_LABEL_PREFIX (TARGET_64BIT ? "" : "_")
+
+// #undef LOCAL_LABEL_PREFIX
+// #define LOCAL_LABEL_PREFIX (TARGET_64BIT ? "." : "")
+
 #include <stdbool.h>
 #ifdef __MINGW32__
 #include <stdio.h>
@@ -36,11 +63,21 @@ along with GCC; see the file COPYING3.  If not see
 
 #define TARGET_ASM_NAMED_SECTION  aarch64_pe_asm_named_section
 
-/* In winnt.cc */
+/* SEH support */
+extern void aarch64_pe_seh_init (FILE *);
+extern void aarch64_pe_seh_end_prologue (FILE *);
+extern void aarch64_pe_seh_cold_init (FILE *, const char *);
+extern void aarch64_pe_seh_unwind_emit (FILE *, rtx_insn *);
+extern void aarch64_pe_seh_emit_except_personality (rtx);
+extern void aarch64_pe_seh_init_sections (void);
+
+/* In aarch64_c */
 extern void aarch64_pe_asm_named_section (const char *, unsigned int, tree);
 extern bool aarch64_pe_valid_dllimport_attribute_p (const_tree);
 extern void aarch64_pe_maybe_record_exported_symbol (tree, const char *, int);
 extern void aarch64_pe_declare_function_type (FILE *, const char *, int);
+
+extern void aarch64_print_reg (rtx, int, FILE*);
 
 #define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P aarch64_pe_valid_dllimport_attribute_p
 
@@ -56,6 +93,7 @@ extern void aarch64_pe_declare_function_type (FILE *, const char *, int);
       builtin_define ("_WIN32");                                \
       builtin_define_std ("WIN32");                             \
       builtin_define_std ("WINNT");                             \
+      builtin_define ("__SEH__");                               \
       builtin_define_with_int_value ("_INTEGRAL_MAX_BITS",      \
 				     TYPE_PRECISION (intmax_type_node));\
       builtin_define ("__MINGW64__");                       \
@@ -199,5 +237,17 @@ extern void aarch64_pe_declare_function_type (FILE *, const char *, int);
 
 #undef MAX_OFILE_ALIGNMENT
 #define MAX_OFILE_ALIGNMENT (8192 * 8)
+
+/* According to Windows x64 software convention, the maximum stack allocatable
+   in the prologue is 4G - 8 bytes.  Furthermore, there is a limited set of
+   instructions allowed to adjust the stack pointer in the epilog, forcing the
+   use of frame pointer for frames larger than 2 GB.  This theorical limit
+   is reduced by 256, an over-estimated upper bound for the stack use by the
+   prologue.
+   We define only one threshold for both the prolog and the epilog.  When the
+   frame size is larger than this threshold, we allocate the area to save SSE
+   regs, then save them, and then allocate the remaining.  There is no SEH
+   unwind info for this later allocation.  */
+#define SEH_MAX_FRAME_SIZE ((2U << 30) - 256)
 
 #endif

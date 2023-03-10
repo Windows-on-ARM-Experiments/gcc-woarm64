@@ -26,4 +26,36 @@ winnt.o: $(srcdir)/config/aarch64/winnt.cc $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(srcdir)/config/aarch64/winnt.cc
 
+winnt-c.o: config/winnt-c.cc $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+  $(C_TARGET_H) $(C_TARGET_DEF_H)
+	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) \
+	  $< $(OUTPUT_OPTION)
+
+winnt-cxx.o: $(srcdir)/config/aarch64/winnt-cxx.cc $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+  $(TM_H) $(TREE_H) flags.h \
+  $(TM_P_H) $(HASHTAB_H) $(GGC_H)
+	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(srcdir)/config/aarch64/winnt-cxx.cc
+
+
+winnt-stubs.o: $(srcdir)/config/aarch64/winnt-stubs.cc $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+  $(TM_H) $(RTL_H) $(REGS_H) hard-reg-set.h output.h $(TREE_H) flags.h \
+  $(TM_P_H) $(HASHTAB_H) $(GGC_H)
+	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(srcdir)/config/aarch64/winnt-stubs.cc
+
+cygwin-d.o: $(srcdir)/config/aarch64/cygwin-d.cc
+	$(COMPILE) $<
+	$(POSTCOMPILE)
+
+winnt-d.o: $(srcdir)/config/aarch64/winnt-d.cc
+	$(COMPILE) $<
+	$(POSTCOMPILE)
+
+msformat-c.o: $(srcdir)/config/aarch64/msformat-c.cc $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+  $(TM_H) $(RTL_H) $(REGS_H) hard-reg-set.h output.h $(TREE_H) flags.h \
+  $(TM_P_H) $(HASHTAB_H) $(GGC_H)
+	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(srcdir)/config/aarch64/msformat-c.cc
+
 STMP_FIXINC=stmp-fixinc
