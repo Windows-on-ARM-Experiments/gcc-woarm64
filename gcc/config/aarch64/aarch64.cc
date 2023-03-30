@@ -12801,6 +12801,12 @@ aarch64_label_mentioned_p (rtx x)
   return 0;
 }
 
+void
+aarch64_print_reg (rtx x, int code, FILE *file)
+{
+  aarch64_print_operand (file, x, code);
+}
+
 /* Implement REGNO_REG_CLASS.  */
 
 enum reg_class
@@ -23189,6 +23195,9 @@ aarch64_declare_function_name (FILE *stream, const char* name,
 #ifdef ASM_OUTPUT_TYPE_DIRECTIVE
   ASM_OUTPUT_TYPE_DIRECTIVE (stream, name, "function");
 #endif
+#ifdef SUBTARGET_ASM_UNWIND_INIT
+  SUBTARGET_ASM_UNWIND_INIT (stream);
+#endif
   ASM_OUTPUT_LABEL (stream, name);
 
   cfun->machine->label_is_assembled = true;
@@ -27803,6 +27812,10 @@ aarch64_sls_emit_function_stub (FILE *out_file, int regnum)
 void
 aarch64_sls_emit_blr_function_thunks (FILE *out_file)
 {
+#ifdef TARGET_PECOFF
+  aarch64_pe_epilogue(out_file);
+#endif
+
   if (! aarch64_harden_sls_blr_p ())
     return;
 

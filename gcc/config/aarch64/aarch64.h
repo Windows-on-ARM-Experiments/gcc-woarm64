@@ -872,6 +872,8 @@ typedef struct GTY (()) machine_function
   /* A set of all decls that have been passed to a vld1 intrinsic in the
      current function.  This is used to help guide the vector cost model.  */
   hash_set<tree> *vector_load_decls;
+  /* During SEH output, this is non-null.  */
+  struct seh_frame_state * GTY((skip(""))) seh;
 } machine_function;
 #endif
 #endif

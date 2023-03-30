@@ -1211,15 +1211,18 @@ aarch64*-*-mingw*)
 	tm_file="${tm_file} aarch64/aarch64-coff.h"
 	tm_file="${tm_file} aarch64/cygming.h"
 	tm_file="${tm_file} aarch64/mingw32.h"
-	tm_file="${tm_file} aarch64/mingw-stdint.h"	
+	tm_file="${tm_file} aarch64/mingw-stdint.h"
 	tmake_file="${tmake_file} aarch64/t-aarch64" # aarch64/t-aarch64-linux"
 # 	tm_defines="${tm_defines}  TARGET_DEFAULT_ASYNC_UNWIND_TABLES=1"
 	user_headers_inc_next_post="${user_headers_inc_next_post} float.h"
 	target_gtfiles="$target_gtfiles \$(srcdir)/config/aarch64/winnt.cc"
 	extra_options="${extra_options} aarch64/cygming.opt aarch64/mingw.opt"
 	extra_objs="${extra_objs} winnt.o"
+	c_target_objs="${c_target_objs} winnt-c.o msformat-c.o"
+	cxx_target_objs="${cxx_target_objs} winnt-c.o winnt-cxx.o msformat-c.o"
+	d_target_objs="${d_target_objs} winnt-d.o"
 	tmake_file="${tmake_file} aarch64/t-cygming"
-	aarch64_multilibs="lp64"
+	aarch64_multilibs="llp64"	
 	case ${enable_threads} in
 	  "" | yes | win32)
 	    thread_file='win32'
@@ -1228,8 +1231,13 @@ aarch64*-*-mingw*)
 	    thread_file='posix'
 	    ;;
 	esac
-	TM_MULTILIB_CONFIG="${TM_MULTILIB_CONFIG},lp64"
+	TM_MULTILIB_CONFIG="${TM_MULTILIB_CONFIG},llp64"
 	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
+	target_has_targetcm="yes"
+	target_has_targetdm="yes"
+	default_use_cxa_atexit=yes
+	need_64bit_isa=yes
+	tm_defines="${tm_defines} TARGET_CYGWIN64=1"
 	;;
 aarch64*-wrs-vxworks*)
         tm_file="${tm_file} elfos.h aarch64/aarch64-elf.h"
