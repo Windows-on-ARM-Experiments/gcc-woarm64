@@ -31,6 +31,9 @@ along with GCC; see the file COPYING3.  If not see
 #include <stdio.h>
 #endif
 
+#undef TARGET_SEH
+#define TARGET_SEH  1
+
 #define TARGET_ASM_NAMED_SECTION  aarch64_pe_asm_named_section
 
 /* In winnt.cc */
@@ -46,6 +49,8 @@ extern void aarch64_pe_declare_function_type (FILE *, const char *, int);
 #define TARGET_OS_CPP_BUILTINS()                                 \
   do                                                            \
     {                                                           \
+      if (TARGET_SEH)							\
+        builtin_define ("__SEH__");				\
       builtin_define ("__MSVCRT__");                            \
       builtin_define ("__MINGW32__");                           \
       builtin_define ("_WIN32");                                \
