@@ -77,7 +77,11 @@ extern bool aarch64_pe_valid_dllimport_attribute_p (const_tree);
 extern void aarch64_pe_maybe_record_exported_symbol (tree, const char *, int);
 extern void aarch64_pe_declare_function_type (FILE *, const char *, int);
 
+/* In winnt */
 extern void aarch64_print_reg (rtx, int, FILE*);
+extern void aarch64_pe_end_function (FILE *f, const char *, tree);
+extern void aarch64_pe_end_cold_function (FILE *f, const char *, tree);
+extern void aarch64_pe_start_epilogue (FILE *file ATTRIBUTE_UNUSED);
 
 #define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P aarch64_pe_valid_dllimport_attribute_p
 
@@ -86,8 +90,6 @@ extern void aarch64_print_reg (rtx, int, FILE*);
 #define TARGET_OS_CPP_BUILTINS()                                 \
   do                                                            \
     {                                                           \
-      if (TARGET_SEH)							\
-        builtin_define ("__SEH__");				\
       builtin_define ("__MSVCRT__");                            \
       builtin_define ("__MINGW32__");                           \
       builtin_define ("_WIN32");                                \
@@ -212,6 +214,17 @@ extern void aarch64_print_reg (rtx, int, FILE*);
 	gcc_unreachable ();					\
       }								\
   } while (0)
+
+#undef ASM_DECLARE_FUNCTION_SIZE
+#define ASM_DECLARE_FUNCTION_SIZE(FILE,NAME,DECL) \
+  aarch64_pe_end_function (FILE, NAME, DECL)
+
+#undef ASM_DECLARE_COLD_FUNCTION_SIZE
+#define ASM_DECLARE_COLD_FUNCTION_SIZE(FILE,NAME,DECL) \
+  aarch64_pe_end_cold_function (FILE, NAME, DECL)
+
+#undef TARGET_ASM_FUNCTION_EPILOGUE
+#define TARGET_ASM_FUNCTION_EPILOGUE aarch64_pe_start_epilogue
 
 #define SUBTARGET_ATTRIBUTE_TABLE \
   { "selectany", 0, 0, true, false, false, false, \

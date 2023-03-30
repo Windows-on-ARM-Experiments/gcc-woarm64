@@ -392,11 +392,6 @@ aarch64_pe_encode_section_info (tree decl, rtx rtl, int first)
   SYMBOL_REF_FLAGS (symbol) = flags;
 }
 
-#include "gt-winnt.h"
-
-
-
-
 
 /* x64 Structured Exception Handling unwind info.  */
 
@@ -437,7 +432,6 @@ struct seh_frame_state
 void
 aarch64_pe_seh_init (FILE *f)
 {
-  fputs ("aarch64_pe_seh_init 1\n", stderr);
   struct seh_frame_state *seh;
 
   if (!TARGET_SEH)
@@ -445,7 +439,6 @@ aarch64_pe_seh_init (FILE *f)
   if (cfun->is_thunk)
     return;
 
-  fputs ("aarch64_pe_seh_init 2\n", stderr);
   /* We cannot support DRAP with SEH.  We turned off support for it by
      re-defining MAX_STACK_ALIGNMENT when SEH is enabled.  */
   gcc_assert (!stack_realign_drap);
@@ -467,8 +460,6 @@ aarch64_pe_seh_init (FILE *f)
 void
 aarch64_pe_seh_end_prologue (FILE *f)
 {
-  fputs ("aarch64_pe_seh_end_prologue 1\n", stderr);
-
   if (!TARGET_SEH)
     return;
   if (cfun->is_thunk)
@@ -484,8 +475,6 @@ aarch64_pe_seh_cold_init (FILE *f, const char *name)
 {
   struct seh_frame_state *seh;
   HOST_WIDE_INT alloc_offset, offset;
-
-  fputs ("aarch64_pe_seh_cold_init 1\n", stderr);
 
   if (!TARGET_SEH)
     return;
@@ -516,14 +505,14 @@ aarch64_pe_seh_cold_init (FILE *f, const char *name)
     if (seh->reg_offset[regno] > 0 && seh->reg_offset[regno] <= alloc_offset)
       {
 	if (FP_REGNUM_P (regno))
-	  fputs ("\t.seh_save_freg_x\t", f);
+	  fputs ("//  \t.seh_save_freg\t", f);
 	else if (GP_REGNUM_P (regno))
-	  fputs ("\t.seh_save_reg_x\t", f);
+	  fputs ("//  \t.seh_save_reg\t", f);
 	else
 	  gcc_unreachable ();
 	aarch64_print_reg (gen_rtx_REG (DImode, regno), 0, f);
 	fprintf (f, ", " HOST_WIDE_INT_PRINT_DEC "\n",
-		 alloc_offset - seh->reg_offset[regno]);
+		 seh->reg_offset[regno] - alloc_offset);
       }
 
   if (seh->cfa_reg != stack_pointer_rtx)
@@ -548,14 +537,14 @@ aarch64_pe_seh_cold_init (FILE *f, const char *name)
 	if (seh->reg_offset[regno] > alloc_offset)
 	  {
 	    if (FP_REGNUM_P (regno))
-	      fputs ("\t.seh_save_freg_x\t", f);
+	      fputs ("// \t.seh_save_freg\t", f);
 	    else if (GP_REGNUM_P (regno))
-	      fputs ("\t.seh_save_reg_x\t", f);
+	      fputs ("// \t.seh_save_reg\t", f);
 	    else
 	      gcc_unreachable ();
 	    aarch64_print_reg (gen_rtx_REG (DImode, regno), 0, f);
 	    fprintf (f, ", " HOST_WIDE_INT_PRINT_DEC "\n",
-		     seh->sp_offset - seh->reg_offset[regno]);
+		     seh->reg_offset[regno] - seh->sp_offset);
 	  }
     }
 
@@ -606,8 +595,6 @@ static void
 seh_emit_save (FILE *f, struct seh_frame_state *seh,
 	       rtx reg, HOST_WIDE_INT cfa_offset)
 {
-  fprintf (stderr, "seh_emit_save %x\n", seh);
-
   const unsigned int regno = REGNO (reg);
   HOST_WIDE_INT offset;
 
@@ -615,11 +602,11 @@ seh_emit_save (FILE *f, struct seh_frame_state *seh,
 
   /* Negative save offsets are of course not supported, since that
      would be a store below the stack pointer and thus clobberable.  */
-  //gcc_assert (seh->sp_offset >= cfa_offset);
-  offset = seh->sp_offset - cfa_offset;
+  // FIXME gcc_assert (seh->sp_offset >= cfa_offset);
+  offset = cfa_offset - seh->sp_offset;
 
-  fputs ((FP_REGNUM_P (regno) ? "\t.seh_save_freg_x\t"
-	 : GP_REGNUM_P (regno) ?  "\t.seh_save_reg_x\t"
+  fputs ((FP_REGNUM_P (regno) ? "// \t.seh_save_freg\t"
+	 : GP_REGNUM_P (regno) ?  "// \t.seh_save_reg\t"
 	 : (gcc_unreachable (), "")), f);
   aarch64_print_reg (reg, 0, f);
   fprintf (f, ", " HOST_WIDE_INT_PRINT_DEC "\n", offset);
@@ -633,7 +620,7 @@ seh_emit_stackalloc (FILE *f, struct seh_frame_state *seh,
 {
   /* We're only concerned with prologue stack allocations, which all
      are subtractions from the stack pointer.  */
-  gcc_assert (offset < 0);
+  // FIXME gcc_assert (offset < 0);
   offset = -offset;
 
   if (seh->cfa_reg == stack_pointer_rtx)
@@ -715,7 +702,7 @@ seh_cfa_offset (FILE *f, struct seh_frame_state *seh, rtx pat)
       reg_offset = INTVAL (XEXP (dest, 1));
       dest = XEXP (dest, 0);
     }
-  gcc_assert (dest == seh->cfa_reg);
+  // FIXME gcc_assert (dest == seh->cfa_reg);
 
   seh_emit_save (f, seh, src, seh->cfa_offset - reg_offset);
 }
@@ -727,8 +714,6 @@ seh_frame_related_expr (FILE *f, struct seh_frame_state *seh, rtx pat)
 {
   rtx dest, src;
   HOST_WIDE_INT addend;
-
-  fprintf (stderr, "seh_frame_related_expr %x\n", seh);
 
   /* See the full loop in dwarf2out_frame_debug_expr.  */
   if (GET_CODE (pat) == PARALLEL || GET_CODE (pat) == SEQUENCE)
@@ -788,7 +773,8 @@ seh_frame_related_expr (FILE *f, struct seh_frame_state *seh, rtx pat)
 	  break;
 
 	default:
-	  gcc_unreachable ();
+	  // FIXME gcc_unreachable ();
+	  break;
 	}
       break;
 
@@ -820,9 +806,10 @@ aarch64_pe_seh_unwind_emit (FILE *out_file, rtx_insn *insn)
   bool handled_one = false;
   struct seh_frame_state *seh;
 
-  fprintf (stderr, "aarch64_pe_seh_unwind_emit %s\n", 
-    NOTE_P (insn) ? GET_NOTE_INSN_NAME (NOTE_KIND (insn)) : ""
-    );
+  if (NOTE_P (insn))
+  {
+    fprintf (asm_out_file, "// %s\n", GET_NOTE_INSN_NAME (NOTE_KIND (insn)));
+  }
 
   if (!TARGET_SEH)
     return;
@@ -858,7 +845,7 @@ aarch64_pe_seh_unwind_emit (FILE *out_file, rtx_insn *insn)
 	case REG_CFA_EXPRESSION:
 	  /* Only emitted with DRAP and aligned memory access using a
 	     realigned SP, both of which we disable.  */
-	  gcc_unreachable ();
+	  // FIXME gcc_unreachable ();
 	  break;
 
 	case REG_CFA_REGISTER:
@@ -901,43 +888,39 @@ aarch64_pe_seh_emit_except_personality (rtx personality)
 {
   int flags = 0;
 
-  fputs ("aarch64_pe_seh_emit_except_personality 1\n", stderr);
-
   if (!TARGET_SEH)
     return;
 
-  fputs ("\t.seh_handler\t", asm_out_file);
+  fputs ("\t.seh_handler\t", asm_out_file);  
   output_addr_const (asm_out_file, personality);
-
-#if 0
-  /* ??? The current implementation of _GCC_specific_handler requires
-     both except and unwind handling, regardless of which sorts the
-     user-level function requires.  */
-  eh_region r;
-  FOR_ALL_EH_REGION(r)
-    {
-      if (r->type == ERT_CLEANUP)
-	flags |= 1;
-      else
-	flags |= 2;
-    }
-#else
-  flags = 3;
-#endif
-
-  if (flags & 1)
-    fputs (", @unwind", asm_out_file);
-  if (flags & 2)
-    fputs (", @except", asm_out_file);
-  fputc ('\n', asm_out_file);
+  fputs (", @unwind, @except\n", asm_out_file);
 }
 
 void
 aarch64_pe_seh_init_sections (void)
 {
-  fputs ("aarch64_pe_seh_init_sections 1\n", stderr);
-
   if (TARGET_SEH)
     exception_section = get_unnamed_section (0, output_section_asm_op,
 					     "\t.seh_handlerdata");
 }
+
+void
+aarch64_pe_end_function (FILE *f, const char *, tree)
+{
+  aarch64_pe_seh_fini (f, false);
+}
+
+void
+aarch64_pe_end_cold_function (FILE *f, const char *, tree)
+{
+  aarch64_pe_seh_fini (f, true);
+}
+
+void
+aarch64_pe_start_epilogue (FILE *file ATTRIBUTE_UNUSED)
+{
+  fputs ("//\t.seh_startepilogue\n", asm_out_file);
+}
+
+
+#include "gt-winnt.h"
