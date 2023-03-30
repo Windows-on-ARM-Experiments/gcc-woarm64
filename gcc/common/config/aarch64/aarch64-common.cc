@@ -426,6 +426,30 @@ aarch64_rewrite_mcpu (int argc, const char **argv)
   return aarch64_rewrite_selected_cpu (argv[argc - 1]);
 }
 
+/* Implement TARGET_EXCEPT_UNWIND_INFO.  */
+
+static enum unwind_info_type
+aarch64_except_unwind_info (struct gcc_options *opts)
+{
+  /* Honor the --enable-sjlj-exceptions configure switch.  */
+#ifdef CONFIG_SJLJ_EXCEPTIONS
+  if (CONFIG_SJLJ_EXCEPTIONS)
+    return UI_SJLJ;
+#endif
+
+  /* On windows 64, prefer SEH exceptions over anything else.  */
+  if (TARGET_64BIT && DEFAULT_ABI == MS_ABI && opts->x_flag_unwind_tables)
+    return UI_SEH;
+
+  if (DWARF2_UNWIND_INFO)
+    return UI_DWARF2;
+
+  return UI_SJLJ;
+}
+
+#undef  TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO  aarch64_except_unwind_info
+
 struct gcc_targetm_common targetm_common = TARGETM_COMMON_INITIALIZER;
 
 #undef AARCH64_CPU_NAME_LENGTH
