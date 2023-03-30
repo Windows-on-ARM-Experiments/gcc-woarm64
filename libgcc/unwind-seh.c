@@ -32,7 +32,7 @@
 
 /* At the moment everything is written for x64, but in theory this could
    also be used for i386, arm, mips and other extant embedded Windows.  */
-#ifndef __x86_64__
+#if !defined(__x86_64__) && !defined(__aarch64__)
 #error "Unsupported architecture."
 #endif
 
@@ -209,7 +209,12 @@ _GCC_specific_handler (PEXCEPTION_RECORD ms_exc, void *this_frame,
          "installed" the target_ip and RAX value via the arguments
          to RtlUnwindEx.  All that's left is to set the RDX value
          and "continue" to have the context installed.  */
+#ifdef __x86_64__
       ms_disp->ContextRecord->Rdx = ms_exc->ExceptionInformation[3];
+#elif defined(__aarch64__)
+      ms_disp->ContextRecord->X1 = ms_exc->ExceptionInformation[3];
+#endif
+
       return ExceptionContinueSearch;
     }
 
@@ -229,7 +234,11 @@ _GCC_specific_handler (PEXCEPTION_RECORD ms_exc, void *this_frame,
       return ExceptionContinueSearch;
     }
 
+#ifdef __x86_64__
   gcc_context.cfa = ms_disp->ContextRecord->Rsp;
+#elif defined(__aarch64__)
+    gcc_context.cfa = ms_disp->ContextRecord->Sp;
+#endif
   gcc_context.ra = ms_disp->ControlPc;
   gcc_context.reg[0] = 0xdeadbeef;	/* These are write-only.  */
   gcc_context.reg[1] = 0xdeadbeef;
@@ -438,6 +447,8 @@ _Unwind_Backtrace(_Unwind_Trace_Fn trace,
   CONTEXT ms_context;
   struct _Unwind_Context gcc_context;
   DISPATCHER_CONTEXT disp_context;
+  ULONG64 ip;
+  ULONG64 sp;
 
   memset (&ms_history, 0, sizeof(ms_history));
   memset (&gcc_context, 0, sizeof(gcc_context));
@@ -452,31 +463,43 @@ _Unwind_Backtrace(_Unwind_Trace_Fn trace,
 
   while (1)
     {
-      gcc_context.disp->ControlPc = ms_context.Rip;
+#ifdef __x86_64__
+      ip = ms_context.Rip;
+#elif defined(__aarch64__)
+      ip = ms_context.Pc;
+#endif
+      gcc_context.disp->ControlPc = ip;
       gcc_context.disp->FunctionEntry
-	= RtlLookupFunctionEntry (ms_context.Rip, &gcc_context.disp->ImageBase,
+	= RtlLookupFunctionEntry (ip, &gcc_context.disp->ImageBase,
 				  &ms_history);
 
       if (!gcc_context.disp->FunctionEntry)
 	return _URC_END_OF_STACK;
 
       gcc_context.disp->LanguageHandler
-	= RtlVirtualUnwind (0, gcc_context.disp->ImageBase, ms_context.Rip,
+	= RtlVirtualUnwind (0, gcc_context.disp->ImageBase, ip,
 			    gcc_context.disp->FunctionEntry, &ms_context,
 			    &gcc_context.disp->HandlerData,
 			    &gcc_context.disp->EstablisherFrame, NULL);
 
       /* Set values that the callback can inspect via _Unwind_GetIP
        * and _Unwind_GetCFA. */
-      gcc_context.ra = ms_context.Rip;
-      gcc_context.cfa = ms_context.Rsp;
+#ifdef __x86_64__
+      ip = ms_context.Rip;
+      sp = ms_context.Rsp;
+#elif defined(__aarch64__)
+      ip = ms_context.Pc;
+      sp = ms_context.Sp;
+#endif
+      gcc_context.ra = ip;
+      gcc_context.cfa = sp;
 
       /* Call trace function.  */
       if (trace (&gcc_context, trace_argument) != _URC_NO_REASON)
 	return _URC_FATAL_PHASE1_ERROR;
 
       /* ??? Check for invalid stack pointer.  */
-      if (ms_context.Rip == 0)
+      if (ip == 0)
 	return _URC_END_OF_STACK;
     }
 }
