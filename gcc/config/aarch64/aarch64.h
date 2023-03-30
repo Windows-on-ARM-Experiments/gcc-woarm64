@@ -540,7 +540,7 @@ constexpr auto AARCH64_FL_DEFAULT_ISA_MODE = AARCH64_FL_SM_OFF;
   {							\
     0, 0, 0, 0,   0, 0, 0, 0,	/* R0 - R7 */		\
     0, 0, 0, 0,   0, 0, 0, 0,	/* R8 - R15 */		\
-    0, 0, 0, 0,   0, 0, 0, 0,	/* R16 - R23 */		\
+    0, 0, 1, 0,   0, 0, 0, 0,	/* R16 - R23 */		\
     0, 0, 0, 0,   0, 1, 0, 1,	/* R24 - R30, SP */	\
     0, 0, 0, 0,   0, 0, 0, 0,   /* V0 - V7 */           \
     0, 0, 0, 0,   0, 0, 0, 0,   /* V8 - V15 */		\
@@ -564,7 +564,7 @@ constexpr auto AARCH64_FL_DEFAULT_ISA_MODE = AARCH64_FL_SM_OFF;
   {							\
     1, 1, 1, 1,   1, 1, 1, 1,	/* R0 - R7 */		\
     1, 1, 1, 1,   1, 1, 1, 1,	/* R8 - R15 */		\
-    1, 1, 1, 0,   0, 0, 0, 0,	/* R16 - R23 */		\
+    1, 1, 0, 0,   0, 0, 0, 0,	/* R16 - R23 */		\
     0, 0, 0, 0,   0, 1, 1, 1,	/* R24 - R30, SP */	\
     1, 1, 1, 1,   1, 1, 1, 1,	/* V0 - V7 */		\
     0, 0, 0, 0,   0, 0, 0, 0,	/* V8 - V15 */		\
@@ -642,7 +642,7 @@ constexpr auto AARCH64_FL_DEFAULT_ISA_MODE = AARCH64_FL_SM_OFF;
    uses alloca.  */
 #define EXIT_IGNORE_STACK	(cfun->calls_alloca)
 
-#define STATIC_CHAIN_REGNUM		R18_REGNUM
+#define STATIC_CHAIN_REGNUM		R17_REGNUM
 #define HARD_FRAME_POINTER_REGNUM	R29_REGNUM
 #define FRAME_POINTER_REGNUM		SFP_REGNUM
 #define STACK_POINTER_REGNUM		SP_REGNUM
@@ -1082,6 +1082,9 @@ typedef struct GTY (()) machine_function
      still exists and still fulfils its original purpose. the same register
      can be reused by other code.  */
   rtx_insn *advsimd_zero_insn;
+  
+  /* During SEH output, this is non-null.  */
+  struct seh_frame_state * GTY((skip(""))) seh;
 } machine_function;
 #endif
 #endif
