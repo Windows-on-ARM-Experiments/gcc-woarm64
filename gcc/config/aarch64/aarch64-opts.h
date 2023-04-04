@@ -108,4 +108,11 @@ enum aarch64_key_type {
   AARCH64_KEY_B
 };
 
+/* Available call abi.  */
+enum calling_abi
+{
+  SYSV_ABI = 0,
+  MS_ABI = 1
+};
+
 #endif

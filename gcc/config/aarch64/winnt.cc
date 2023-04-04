@@ -17,6 +17,8 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
+#define IN_TARGET_CODE 1
+
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -891,7 +893,7 @@ aarch64_pe_seh_emit_except_personality (rtx personality)
   if (!TARGET_SEH)
     return;
 
-  fputs ("\t.seh_handler\t", asm_out_file);  
+  fputs ("\t.seh_handler\t", asm_out_file);
   output_addr_const (asm_out_file, personality);
   fputs (", @unwind, @except\n", asm_out_file);
 }

@@ -18175,6 +18175,10 @@ aarch64_override_options_after_change_1 (struct gcc_options *opts)
      intermediary step for the former.  */
   if (flag_mlow_precision_sqrt)
     flag_mrecip_low_precision_sqrt = true;
+
+  /* Enable unwind tables for MS */
+  if (TARGET_64BIT_MS_ABI && opts->x_flag_unwind_tables == 0)
+    opts->x_flag_unwind_tables = 1;
 }
 
 /* 'Unpack' up the internal tuning structs and update the options

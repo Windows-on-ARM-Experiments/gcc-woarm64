@@ -41,7 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #define SUBTARGET_ASM_UNWIND_INIT  aarch64_pe_seh_init
 
 #undef DEFAULT_ABI
-#define DEFAULT_ABI (TARGET_64BIT ? MS_ABI : SYSV_ABI)
+#define DEFAULT_ABI MS_ABI
 
 #undef TARGET_PECOFF
 #define TARGET_PECOFF 1
@@ -94,9 +94,9 @@ extern void aarch64_pe_begin_epilogue (FILE *file);
       builtin_define ("__MSVCRT__");                            \
       builtin_define ("__MINGW32__");                           \
       builtin_define ("_WIN32");                                \
+      builtin_define ("__SEH__");                               \
       builtin_define_std ("WIN32");                             \
       builtin_define_std ("WINNT");                             \
-      builtin_define ("__SEH__");                               \
       builtin_define_with_int_value ("_INTEGRAL_MAX_BITS",      \
 				     TYPE_PRECISION (intmax_type_node));\
       builtin_define ("__MINGW64__");                       \
@@ -249,6 +249,9 @@ extern void aarch64_pe_begin_epilogue (FILE *file);
 
 #undef TARGET_PECOFF
 #define TARGET_PECOFF 1
+
+#undef DWARF2_UNWIND_INFO
+#define DWARF2_UNWIND_INFO 0
 
 #define TARGET_ENCODE_SECTION_INFO  aarch64_pe_encode_section_info
 
