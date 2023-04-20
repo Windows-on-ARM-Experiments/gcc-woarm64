@@ -489,7 +489,7 @@ _Unwind_Backtrace(_Unwind_Trace_Fn trace,
       sp = ms_context.Rsp;
 #elif defined(__aarch64__)
       ip = ms_context.Pc;
-      ip = ms_context.Sp;
+      sp = ms_context.Sp;
 #endif
       gcc_context.ra = ip;
       gcc_context.cfa = sp;
