@@ -422,8 +422,14 @@ struct seh_frame_state
   /* The offset wrt the CFA where register N has been saved.  */
   HOST_WIDE_INT reg_offset[FIRST_PSEUDO_REGISTER];
 
-  /* True if we are past the end of the epilogue.  */
-  bool after_prologue;
+  /* In prologue.  */
+  bool in_prologue;
+
+  /* In epilogue.  */
+  bool in_epilogue;
+
+  /* Is building seh_proc ops.  */
+  bool is_seh_proc;
 
   /* True if we are in the cold section.  */
   bool in_cold_section;
@@ -451,10 +457,12 @@ aarch64_pe_seh_init (FILE *f)
   seh->sp_offset = INCOMING_FRAME_SP_OFFSET;
   seh->cfa_offset = INCOMING_FRAME_SP_OFFSET;
   seh->cfa_reg = stack_pointer_rtx;
-
+  seh->in_prologue = true;
+  
   fputs ("\t.seh_proc\t", f);
   assemble_name (f, IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (cfun->decl)));
-  fputc ('\n', f);
+  fputs (" \n", f);
+  seh->is_seh_proc = true;
 }
 
 /* Emit an assembler directive for the end of the prologue.  */
@@ -466,7 +474,11 @@ aarch64_pe_seh_end_prologue (FILE *f)
     return;
   if (cfun->is_thunk)
     return;
-  cfun->machine->seh->after_prologue = true;
+  cfun->machine->seh->in_prologue = false;
+
+  if (!cfun->machine->seh->is_seh_proc)
+    return;
+
   fputs ("\t.seh_endprologue\n", f);
 }
 
@@ -484,9 +496,12 @@ aarch64_pe_seh_cold_init (FILE *f, const char *name)
     return;
   seh = cfun->machine->seh;
 
+  if (!seh->is_seh_proc)
+    return;
+
   fputs ("\t.seh_proc\t", f);
   assemble_name (f, name);
-  fputc ('\n', f);
+  fputs (" // aarch64_pe_seh_cold_init \n", f);
 
   /* In the normal case, the frame pointer is near the bottom of the frame
      so we can do the full stack allocation and set it afterwards.  There
@@ -507,13 +522,13 @@ aarch64_pe_seh_cold_init (FILE *f, const char *name)
     if (seh->reg_offset[regno] > 0 && seh->reg_offset[regno] <= alloc_offset)
       {
 	if (FP_REGNUM_P (regno))
-	  fputs ("//  \t.seh_save_freg\t", f);
+	  fputs ("  \t.seh_save_freg\t", f);
 	else if (GP_REGNUM_P (regno))
-	  fputs ("//  \t.seh_save_reg\t", f);
+	  fputs ("  \t.seh_save_reg\t", f);
 	else
 	  gcc_unreachable ();
 	aarch64_print_reg (gen_rtx_REG (DImode, regno), 0, f);
-	fprintf (f, ", " HOST_WIDE_INT_PRINT_DEC "\n",
+	fprintf (f, ", " HOST_WIDE_INT_PRINT_DEC " // cold_init 1\n",
 		 seh->reg_offset[regno] - alloc_offset);
       }
 
@@ -539,13 +554,13 @@ aarch64_pe_seh_cold_init (FILE *f, const char *name)
 	if (seh->reg_offset[regno] > alloc_offset)
 	  {
 	    if (FP_REGNUM_P (regno))
-	      fputs ("// \t.seh_save_freg\t", f);
+	      fputs (" \t.seh_save_freg\t", f);
 	    else if (GP_REGNUM_P (regno))
-	      fputs ("// \t.seh_save_reg\t", f);
+	      fputs (" \t.seh_save_reg\t", f);
 	    else
 	      gcc_unreachable ();
 	    aarch64_print_reg (gen_rtx_REG (DImode, regno), 0, f);
-	    fprintf (f, ", " HOST_WIDE_INT_PRINT_DEC "\n",
+	    fprintf (f, ", " HOST_WIDE_INT_PRINT_DEC " // cold_init 2\n",
 		     seh->reg_offset[regno] - seh->sp_offset);
 	  }
     }
@@ -566,6 +581,8 @@ aarch64_pe_seh_fini (FILE *f, bool cold)
     return;
   seh = cfun->machine->seh;
   if (cold != seh->in_cold_section)
+    return;
+  if (!seh->is_seh_proc)
     return;
   XDELETE (seh);
   cfun->machine->seh = NULL;
@@ -605,13 +622,21 @@ seh_emit_save (FILE *f, struct seh_frame_state *seh,
   /* Negative save offsets are of course not supported, since that
      would be a store below the stack pointer and thus clobberable.  */
   // FIXME gcc_assert (seh->sp_offset >= cfa_offset);
-  offset = cfa_offset - seh->sp_offset;
 
-  fputs ((FP_REGNUM_P (regno) ? "// \t.seh_save_freg\t"
-	 : GP_REGNUM_P (regno) ?  "// \t.seh_save_reg\t"
+  if (seh->sp_offset >= cfa_offset)
+  {
+    offset = seh->sp_offset - cfa_offset;
+  }
+  else
+  {
+    offset = cfa_offset - seh->sp_offset;    
+  }
+
+  fputs ((FP_REGNUM_P (regno) ? " \t.seh_save_freg\t"
+	 : GP_REGNUM_P (regno) ?  " \t.seh_save_reg\t"
 	 : (gcc_unreachable (), "")), f);
   aarch64_print_reg (reg, 0, f);
-  fprintf (f, ", " HOST_WIDE_INT_PRINT_DEC "\n", offset);
+  fprintf (f, ", " HOST_WIDE_INT_PRINT_DEC " // emit_save\n", offset);
 }
 
 /* Emit an assembler directive to adjust RSP by OFFSET.  */
@@ -817,8 +842,11 @@ aarch64_pe_seh_unwind_emit (FILE *out_file, rtx_insn *insn)
     return;
 
   seh = cfun->machine->seh;
+
   if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_SWITCH_TEXT_SECTIONS)
     {
+       if (!seh->is_seh_proc)
+         return;
       /* See ix86_output_call_insn/seh_fixup_eh_fallthru for the rationale.  */
       rtx_insn *prev = prev_active_insn (insn);
       if (prev && (CALL_P (prev) || !insn_nothrow_p (prev)))
@@ -832,7 +860,7 @@ aarch64_pe_seh_unwind_emit (FILE *out_file, rtx_insn *insn)
     return;
 
   /* Skip RTX_FRAME_RELATED_P insns that are associated with the epilogue.  */
-  if (seh->after_prologue)
+  if (!seh->in_prologue && !seh->in_epilogue)
     return;
 
   for (note = REG_NOTES (insn); note ; note = XEXP (note, 1))
@@ -921,13 +949,35 @@ aarch64_pe_end_cold_function (FILE *f, const char *, tree)
 void
 aarch64_pe_epilogue (FILE *file)
 {
-  fputs ("//\t.seh_endepilogue\n", file);
+  struct seh_frame_state *seh;
+
+  if (!TARGET_SEH)
+    return;
+
+  seh = cfun->machine->seh;
+  seh->in_epilogue = false;
+
+  if (seh->is_seh_proc)
+  {
+    fputs ("\t.seh_endepilogue\n", file);
+  }
 }
 
 void
 aarch64_pe_begin_epilogue (FILE *file)
 {
-  fputs ("//\t.seh_startepilogue\n", file);
+  struct seh_frame_state *seh;
+
+  if (!TARGET_SEH)
+    return;
+
+  seh = cfun->machine->seh;
+  seh->in_epilogue = true;
+
+  if (seh->is_seh_proc)
+  {
+    fputs ("\t.seh_startepilogue\n", file);
+  }
 }
 
 
