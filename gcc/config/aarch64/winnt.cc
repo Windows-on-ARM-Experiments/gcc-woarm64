@@ -779,10 +779,13 @@ seh_frame_related_expr (FILE *f, struct seh_frame_state *seh, rtx pat)
       switch (GET_CODE (src))
 	{
 	case REG:
-	  /* REG = REG: This should be establishing a frame pointer.  */
-	  gcc_assert (src == stack_pointer_rtx);
-	  gcc_assert (dest == hard_frame_pointer_rtx);
-	  seh_cfa_adjust_cfa (f, seh, pat);
+	  /* REG = REG: This should be establishing a frame pointer.  */	  
+          if (dest == hard_frame_pointer_rtx)
+            {
+              gcc_assert (src == stack_pointer_rtx);
+	      /* gcc_assert (dest == hard_frame_pointer_rtx); */
+	      seh_cfa_adjust_cfa (f, seh, pat);
+            }
 	  break;
 
 	case PLUS:
@@ -955,11 +958,15 @@ aarch64_pe_epilogue (FILE *file)
     return;
 
   seh = cfun->machine->seh;
-  seh->in_epilogue = false;
 
-  if (seh->is_seh_proc)
+  if (seh)
   {
-    fputs ("\t.seh_endepilogue\n", file);
+    seh->in_epilogue = false;
+
+    if (seh->is_seh_proc)
+    {
+      fputs ("\t.seh_endepilogue\n", file);
+    }
   }
 }
 
