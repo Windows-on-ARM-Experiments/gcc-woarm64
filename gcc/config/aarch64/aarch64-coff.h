@@ -78,7 +78,7 @@
 #endif
 
 #define ASM_OUTPUT_SKIP(STREAM, NBYTES) 	\
-  fprintf (STREAM, "\t.space\t%d\n", (int) (NBYTES))
+  fprintf (STREAM, "\t.space\t%d  // skip\n", (int) (NBYTES))
 
 #undef TARGET_ASM_CONSTRUCTOR
 #define TARGET_ASM_CONSTRUCTOR aarch64_elf_asm_constructor
@@ -90,9 +90,15 @@
 #define DATA_SECTION_ASM_OP	"\t.data"
 #define BSS_SECTION_ASM_OP	"\t.bss"
 
-#define CTORS_SECTION_ASM_OP "\t.section\t.init_array,\"aw\""
-#define DTORS_SECTION_ASM_OP "\t.section\t.fini_array,\"aw\""
+#define CTORS_SECTION_ASM_OP	"\t.section\t.ctors, \"aw\""
+#define DTORS_SECTION_ASM_OP	"\t.section\t.dtors, \"aw\""
 
 #define GLOBAL_ASM_OP "\t.global\t"
+
+#undef SUPPORTS_INIT_PRIORITY
+#define SUPPORTS_INIT_PRIORITY 0
+
+#undef STACK_CHECK_STATIC_BUILTIN
+#define STACK_CHECK_STATIC_BUILTIN 1
 
 #endif
