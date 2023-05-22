@@ -27817,7 +27817,7 @@ void
 aarch64_sls_emit_blr_function_thunks (FILE *out_file)
 {
 #ifdef TARGET_PECOFF
-  aarch64_pe_epilogue(out_file);
+  aarch64_pe_end_epilogue(out_file);
 #endif
 
   if (! aarch64_harden_sls_blr_p ())

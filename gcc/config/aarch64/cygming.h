@@ -81,7 +81,7 @@ extern void aarch64_pe_declare_function_type (FILE *, const char *, int);
 extern void aarch64_print_reg (rtx, int, FILE*);
 extern void aarch64_pe_end_function (FILE *f, const char *, tree);
 extern void aarch64_pe_end_cold_function (FILE *f, const char *, tree);
-extern void aarch64_pe_epilogue (FILE *file);
+extern void aarch64_pe_end_epilogue (FILE *file);
 extern void aarch64_pe_begin_epilogue (FILE *file);
 
 #define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P aarch64_pe_valid_dllimport_attribute_p
