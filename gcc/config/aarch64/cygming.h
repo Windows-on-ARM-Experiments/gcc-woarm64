@@ -32,6 +32,8 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_ASM_UNWIND_EMIT  aarch64_pe_seh_unwind_emit
 #undef  TARGET_ASM_UNWIND_EMIT_BEFORE_INSN
 #define TARGET_ASM_UNWIND_EMIT_BEFORE_INSN  false
+#undef  TARGET_ASM_FUNCTION_PROLOGUE
+#define TARGET_ASM_FUNCTION_PROLOGUE aarch64_pe_seh_function_prologue
 #undef  TARGET_ASM_FUNCTION_END_PROLOGUE
 #define TARGET_ASM_FUNCTION_END_PROLOGUE  aarch64_pe_seh_end_prologue
 #undef  TARGET_ASM_EMIT_EXCEPT_PERSONALITY
@@ -66,6 +68,7 @@ along with GCC; see the file COPYING3.  If not see
 /* SEH support */
 extern void aarch64_pe_seh_init (FILE *);
 extern void aarch64_pe_seh_end_prologue (FILE *);
+extern void aarch64_pe_seh_function_prologue (FILE *);
 extern void aarch64_pe_seh_cold_init (FILE *, const char *);
 extern void aarch64_pe_seh_unwind_emit (FILE *, rtx_insn *);
 extern void aarch64_pe_seh_emit_except_personality (rtx);
@@ -226,9 +229,6 @@ extern void aarch64_pe_begin_epilogue (FILE *file);
 
 #undef  TARGET_ASM_FUNCTION_BEGIN_EPILOGUE
 #define TARGET_ASM_FUNCTION_BEGIN_EPILOGUE aarch64_pe_begin_epilogue
-
-#undef TARGET_ASM_FUNCTION_EPILOGUE
-#define TARGET_ASM_FUNCTION_EPILOGUE aarch64_pe_start_epilogue
 
 #define SUBTARGET_ATTRIBUTE_TABLE \
   { "selectany", 0, 0, true, false, false, false, \

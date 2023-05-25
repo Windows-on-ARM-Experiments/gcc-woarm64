@@ -426,8 +426,7 @@ aarch64_pe_seh_init (FILE *f)
   gcc_assert (!stack_realign_drap);
 
   seh = XCNEW (struct seh_frame_state);
-  cfun->machine->seh = seh;
-  seh->in_prologue = true;
+  cfun->machine->seh = seh;  
   
   fputs ("\t.seh_proc\t", f);
   assemble_name (f, IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (cfun->decl)));
@@ -443,6 +442,23 @@ aarch64_pe_seh_cold_init (FILE *f, const char *name)
   aarch64_pe_seh_init (f);
 }
 
+
+
+void 
+aarch64_pe_seh_function_prologue (FILE *f)
+{
+  if (!TARGET_SEH)
+    return;
+    
+  if (cfun->is_thunk)
+    return;
+  
+  if (!cfun->machine->seh->is_seh_proc)
+    return;
+
+  cfun->machine->seh->in_prologue = true;
+}
+
 /* Emit an assembler directive for the end of the prologue.  */
 
 void
@@ -450,14 +466,18 @@ aarch64_pe_seh_end_prologue (FILE *f)
 {
   if (!TARGET_SEH)
     return;
+
   if (cfun->is_thunk)
     return;
-  cfun->machine->seh->in_prologue = false;
-
+  
   if (!cfun->machine->seh->is_seh_proc)
     return;
 
-  fputs ("\t.seh_endprologue\n", f);
+  if (cfun->machine->seh->in_prologue)
+  {
+    cfun->machine->seh->in_prologue = false;
+    fputs ("\t.seh_endprologue\n", f);
+  }
 }
 
 /* Emit an assembler directive for the end of the function.  */
@@ -484,8 +504,6 @@ aarch64_pe_seh_fini (FILE *f)
 static void
 seh_emit_push (FILE *f, struct seh_frame_state *seh, rtx reg)
 {
-  fputs ("// seh_emit_push\n", f);
-
   const unsigned int regno = REGNO (reg);
   gcc_checking_assert (GP_REGNUM_P (regno));
 
@@ -500,38 +518,39 @@ static void
 seh_emit_save (FILE *f, struct seh_frame_state *seh,
 	       rtx reg, HOST_WIDE_INT offset)
 {
-  fputs ("// seh_emit_save\n", f);
-
   const unsigned int regno = REGNO (reg);
 
   fputs ((FP_REGNUM_P (regno) ? " \t.seh_save_freg\t"
 	 : GP_REGNUM_P (regno) ?  " \t.seh_save_reg\t"
 	 : (gcc_unreachable (), "")), f);
   aarch64_print_reg (reg, 0, f);
-  fprintf (f, ", " HOST_WIDE_INT_PRINT_DEC " // emit_save\n", offset);
+  fprintf (f, ", " HOST_WIDE_INT_PRINT_DEC " \n", offset);
 }
 
 /* Emit an assembler directive to adjust RSP by OFFSET.  */
 
-static void
+static bool
 seh_emit_stackalloc (FILE *f, struct seh_frame_state *seh,
 		     HOST_WIDE_INT offset)
 {
-  fputs ("// seh_emit_stackalloc\n", f);
-
+  bool emitted = false;
   if (offset < 0)
     offset = -offset;
   if (offset < SEH_MAX_FRAME_SIZE)
+  {
     fprintf (f, "\t.seh_stackalloc\t" HOST_WIDE_INT_PRINT_DEC "\n", offset);
+    emitted = true;
+  }
+
+  return emitted;
 }
 
-static void
-seh_frame_related_expr (FILE *f, struct seh_frame_state *seh, rtx pat)
+static bool
+seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
 {
-  fputs ("// seh_frame_related_expr\n", f);
-
   rtx dest, src;
-  HOST_WIDE_INT addend;
+  HOST_WIDE_INT addend = 0;
+  bool emitted = false;
 
   if (GET_CODE (pat) == SEQUENCE)
     {
@@ -578,72 +597,94 @@ seh_frame_related_expr (FILE *f, struct seh_frame_state *seh, rtx pat)
           addend != 0)
       {
         fprintf (f, "\t.seh_save_fplr_x	%d\n", -addend);
+        emitted = true;
       }
-
-      if (dest_bitmap == ((1 << 29) | (1 << 30) | (1 << 31)) && 
+      else if (src_bitmap == ((1 << 29) | (1 << 30)) && 
+          dest_bitmap == 0)
+      {
+        fprintf (f, "\t.seh_save_fplr	%d\n", -addend);
+        emitted = true;
+      }
+      else if (dest_bitmap == ((1 << 29) | (1 << 30) | (1 << 31)) && 
           addend != 0)
       {
         fprintf (f, "\t.seh_save_fplr_x	%d\n", addend);
+        emitted = true;
       }
     }
   else
     {
-      dest = SET_DEST (pat);
       src = SET_SRC (pat);
 
-      switch (GET_CODE (dest))
-        {
-        case REG:
-          switch (GET_CODE (src))
-            {
-            case REG:
-              fputs ("// src=REG\n", f);  
-              if (dest == hard_frame_pointer_rtx)
-                {
-                  gcc_assert (src == stack_pointer_rtx);
-                  fputs ("// TODO src=REG | dest frame pointer\n", f);
-                }
-              break;
+      if (GET_CODE (pat) == SET)
+      {
+        dest = SET_DEST (pat);
 
-            case PLUS:
-              fputs ("// src=PLUS\n", f);  
-              addend = INTVAL (XEXP (src, 1));
-              src = XEXP (src, 0);
-              if (dest == hard_frame_pointer_rtx)
-                fputs ("// TODO src=PLUS | dest frame pointer\n", f);
-              else if (dest == stack_pointer_rtx)
-                {
-                  gcc_assert (src == stack_pointer_rtx);
-                  seh_emit_stackalloc (f, seh, addend);
-                }
-              else
-                gcc_unreachable ();
-              break;
+        switch (GET_CODE (dest))
+          {
+          case REG:
+            switch (GET_CODE (src))
+              {
+              case REG:  
+                if (dest == hard_frame_pointer_rtx &&
+                    src == stack_pointer_rtx)
+                  {
+                    fputs ("\t.seh_set_fp // bbb\n", f);
+                    emitted = true;
+                  }
+                  else
+                  {
+                    fputs ("// TODO src=REG | dest=REG\n", f);
+                  }
+                break;
 
-            default:
-              fputs ("// TODO src=REG | dest=REG\n", f);
-              break;
-            }
-          break;
+              case PLUS: 
+                addend = INTVAL (XEXP (src, 1));
+                src = XEXP (src, 0);
+                if (dest == hard_frame_pointer_rtx)
+                  fputs (" // TODO src=PLUS | dest frame pointer\n", f);
+                else if (dest == stack_pointer_rtx)
+                  {
+                    gcc_assert (src == stack_pointer_rtx);
+                    emitted = seh_emit_stackalloc (f, seh, addend);
+                  }
+                else
+                  fputs (" // TODO src=PLUS | dest other\n", f);
+                break;
 
-        case MEM: // Save
-          dest = XEXP (dest, 0);
-          if (GET_CODE (dest) == PRE_DEC)
-            {
-              gcc_checking_assert (GET_MODE (src) == Pmode);
-              gcc_checking_assert (REG_P (src));
-              seh_emit_push (f, seh, src);
-            }
-          else
-            {
-              fputs ("// TODO dest=MEM\n", f);
-            }
-          break;
+              default:
+                fputs (" // TODO src=REG | dest=REG\n", f);
+                break;
+              }
+            break;
 
-        default:
-          gcc_unreachable ();
-        }
+          case MEM: // Save
+            dest = XEXP (dest, 0);
+            if (GET_CODE (dest) == PRE_DEC)
+              {
+                //gcc_checking_assert (GET_MODE (src) == Pmode);
+                //gcc_checking_assert (REG_P (src));
+                seh_emit_push (f, seh, src);
+                emitted = true;
+              }
+            else
+              {
+                fputs (" // TODO dest=MEM\n", f);
+              }
+            break;
+
+          default:
+            fputs (" // TODO not MEM or REG\n", f);
+            break;
+          }
+      }
+      else
+      {
+        fputs (" // TODO not SET pattern\n", f);
+      }
     }
+
+    return emitted;
 }
 
 /* This function looks at a single insn and emits any SEH directives
@@ -658,33 +699,45 @@ aarch64_pe_seh_unwind_emit (FILE *out_file, rtx_insn *insn)
   if (NOTE_P (insn))
   {
     fprintf (asm_out_file, "// %s\n", GET_NOTE_INSN_NAME (NOTE_KIND (insn)));
+    return;
   }
 
   if (!TARGET_SEH)
     return;
 
-  if (NOTE_P (insn) || !RTX_FRAME_RELATED_P (insn))
-    return;
-
   seh = cfun->machine->seh;
 
-  if (!seh->in_prologue && !seh->in_epilogue)
+  if (!seh || (!seh->in_prologue && !seh->in_epilogue))
     return;
 
+  pat = PATTERN (insn);
+
+  if (GET_CODE (pat) == SET)
+    {
+       rtx dest = SET_DEST (pat);
+       if (GET_CODE (dest) == MEM && GET_CODE (XEXP (dest, 0)) == SCRATCH)
+         return;
+    }
+
   bool related_exp_needed = true;
+  bool emitted = false;
 
   for (note = REG_NOTES (insn); note ; note = XEXP (note, 1))
     {
       switch (REG_NOTE_KIND (note))
 	{
 	case REG_FRAME_RELATED_EXPR:
-	  pat = XEXP (note, 0);
-          seh_frame_related_expr (out_file, seh, pat);
-	  related_exp_needed = false;
+          if (!emitted)
+          {
+	    pat = XEXP (note, 0);
+            emitted = seh_pattern_emit (out_file, seh, pat);
+            if (emitted)
+	      related_exp_needed = false;
+          }
 	  break;
 
 	case REG_CFA_DEF_CFA:
-          fputs ("// **** REG_CFA_DEF_CFA\n", out_file);
+    fputs ("// **** REG_CFA_DEF_CFA\n", out_file);
 	  break;
 
 	case REG_CFA_EXPRESSION:
@@ -703,11 +756,12 @@ aarch64_pe_seh_unwind_emit (FILE *out_file, rtx_insn *insn)
 	  break;
 
 	case REG_CFA_OFFSET:
-	   fputs ("// TODO REG_CFA_OFFSET\n", out_file);
-	   related_exp_needed = false;
-	   break;
+	  fputs ("// TODO REG_CFA_OFFSET\n", out_file);
+	  related_exp_needed = false;
+	  break;
 
-	default:	  
+	default:	
+	  fprintf (asm_out_file, "// default %d\n", REG_NOTE_KIND (note)); 
 	  break;
 	}
     }
@@ -715,7 +769,12 @@ aarch64_pe_seh_unwind_emit (FILE *out_file, rtx_insn *insn)
   if (related_exp_needed)
     {
       pat = PATTERN (insn);
-      seh_frame_related_expr (out_file, seh, pat);
+      emitted = seh_pattern_emit (out_file, seh, pat);
+    }
+
+  if (!emitted)
+    {
+      fputs ("\t.seh_nop // TODO\n", out_file);
     }
 }
 
@@ -743,12 +802,14 @@ aarch64_pe_seh_init_sections (void)
 void
 aarch64_pe_end_function (FILE *f, const char *, tree)
 {
+  aarch64_pe_end_epilogue (f);
   aarch64_pe_seh_fini (f);
 }
 
 void
 aarch64_pe_end_cold_function (FILE *f, const char *, tree)
 {
+  aarch64_pe_end_epilogue (f);
   aarch64_pe_seh_fini (f);
 }
 
