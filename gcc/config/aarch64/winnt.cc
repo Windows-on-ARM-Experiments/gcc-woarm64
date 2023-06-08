@@ -439,6 +439,7 @@ aarch64_pe_seh_init (FILE *f)
 void
 aarch64_pe_seh_cold_init (FILE *f, const char *name)
 {
+  fputs (" // aarch64_pe_seh_cold_init\n", f);
   aarch64_pe_seh_init (f);
 }
 
@@ -545,6 +546,24 @@ seh_emit_stackalloc (FILE *f, struct seh_frame_state *seh,
   return emitted;
 }
 
+static void
+seh_emit_end_epilogue (FILE *file, struct seh_frame_state *seh)
+{
+  if (seh->is_seh_proc)
+  {
+    if (seh->in_epilogue)
+    {
+      fputs ("\t.seh_endepilogue\n", file);
+    }
+  }
+  
+  seh->in_epilogue = false;
+}
+
+
+#define CALLEE_SAVED_REG_NUMBER(r)			\
+  (call_used_regs[(r)] == 0)
+
 static bool
 seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
 {
@@ -559,6 +578,7 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
   else if (GET_CODE (pat) == PARALLEL)
     { 
       int i, regno, n = XVECLEN (pat, 0);
+      int min_src = 0, min_dst = 0;
       unsigned int src_bitmap = 0, dest_bitmap = 0;
 
       for (i = 0; i < n; ++i)
@@ -581,14 +601,16 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
           {            
             regno = REGNO (src);
             fprintf (f, "// -- PARALLEL src %d\n", regno);
-            src_bitmap |= (1 << regno);
+            if (CALLEE_SAVED_REG_NUMBER(regno))
+              src_bitmap |= (1 << regno);
           }
 
           if (GET_CODE (dest) == REG)
           {            
             regno = REGNO (dest);
             fprintf (f, "// -- PARALLEL dest %d\n", regno);
-            dest_bitmap |= (1 << regno);
+            if (CALLEE_SAVED_REG_NUMBER(regno))
+              dest_bitmap |= (1 << regno);
           }
         }
 
@@ -606,6 +628,12 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
         emitted = true;
       }
       else if (dest_bitmap == ((1 << 29) | (1 << 30) | (1 << 31)) && 
+          addend != 0)
+      {
+        fprintf (f, "\t.seh_save_fplr_x	%d\n", addend);
+        emitted = true;
+      }
+      else if (src_bitmap != 0 && 
           addend != 0)
       {
         fprintf (f, "\t.seh_save_fplr_x	%d\n", addend);
@@ -632,6 +660,12 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
                     fputs ("\t.seh_set_fp // bbb\n", f);
                     emitted = true;
                   }
+                else if (CALLEE_SAVED_REG_NUMBER(REGNO (dest)) &&
+                    src == stack_pointer_rtx)
+                  {
+                    seh_emit_save(f, seh, dest, INTVAL (XEXP (src, 1)));
+                    emitted = true;
+                  }
                   else
                   {
                     fputs ("// TODO src=REG | dest=REG\n", f);
@@ -653,7 +687,7 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
                 break;
 
               default:
-                fputs (" // TODO src=REG | dest=REG\n", f);
+                fputs (" // TODO src=default | dest=REG\n", f);
                 break;
               }
             break;
@@ -677,6 +711,11 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
             fputs (" // TODO not MEM or REG\n", f);
             break;
           }
+      }
+      else if (GET_CODE (pat) == RETURN)
+      {
+        seh_emit_end_epilogue (f, seh);
+        emitted = true;
       }
       else
       {
@@ -809,9 +848,12 @@ aarch64_pe_end_function (FILE *f, const char *, tree)
 void
 aarch64_pe_end_cold_function (FILE *f, const char *, tree)
 {
+  fputs (" // aarch64_pe_end_cold_function\n", f);
   aarch64_pe_end_epilogue (f);
   aarch64_pe_seh_fini (f);
 }
+
+
 
 void
 aarch64_pe_end_epilogue (FILE *file)
@@ -825,19 +867,7 @@ aarch64_pe_end_epilogue (FILE *file)
 
   if (seh)
   {
-    if (seh->is_seh_proc)
-    {
-      if (seh->in_epilogue)
-      {
-        fputs ("\t.seh_endepilogue\n", file);
-      }
-      else
-      {
-        fputs ("\t.seh_endfunclet\n", file);
-      }
-    }
-
-    seh->in_epilogue = false;
+    seh_emit_end_epilogue(file, seh);
   }
 }
 

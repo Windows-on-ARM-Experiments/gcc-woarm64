@@ -4762,13 +4762,13 @@ if test "$ac_test_CFLAGS" = set; then
   CFLAGS=$ac_save_CFLAGS
 elif test $ac_cv_prog_cc_g = yes; then
   if test "$GCC" = yes; then
-    CFLAGS="-g -O2"
+    CFLAGS="-g -O0"
   else
     CFLAGS="-g"
   fi
 else
   if test "$GCC" = yes; then
-    CFLAGS="-O2"
+    CFLAGS="-O0"
   else
     CFLAGS=
   fi
@@ -5286,13 +5286,13 @@ if test "$ac_test_CXXFLAGS" = set; then
   CXXFLAGS=$ac_save_CXXFLAGS
 elif test $ac_cv_prog_cxx_g = yes; then
   if test "$GXX" = yes; then
-    CXXFLAGS="-g -O2"
+    CXXFLAGS="-g -O0"
   else
     CXXFLAGS="-g"
   fi
 else
   if test "$GXX" = yes; then
-    CXXFLAGS="-O2"
+    CXXFLAGS="-O0"
   else
     CXXFLAGS=
   fi
@@ -9375,16 +9375,16 @@ fi
 # might be empty or "-g".  We don't require a C++ compiler, so CXXFLAGS
 # might also be empty (or "-g", if a non-GCC C++ compiler is in the path).
 # We want to ensure that TARGET libraries (which we know are built with
-# gcc) are built with "-O2 -g", so include those options when setting
+# gcc) are built with "-O0 -g", so include those options when setting
 # CFLAGS_FOR_TARGET and CXXFLAGS_FOR_TARGET.
 if test "x$CFLAGS_FOR_TARGET" = x; then
   if test "x${is_cross_compiler}" = xyes; then
-    CFLAGS_FOR_TARGET="-g -O2"
+    CFLAGS_FOR_TARGET="-g -O0"
   else
     CFLAGS_FOR_TARGET=$CFLAGS
     case " $CFLAGS " in
-      *" -O2 "*) ;;
-      *) CFLAGS_FOR_TARGET="-O2 $CFLAGS_FOR_TARGET" ;;
+      *" -O0 "*) ;;
+      *) CFLAGS_FOR_TARGET="-O0 $CFLAGS_FOR_TARGET" ;;
     esac
     case " $CFLAGS " in
       *" -g "* | *" -g3 "*) ;;
@@ -9396,12 +9396,12 @@ fi
 
 if test "x$CXXFLAGS_FOR_TARGET" = x; then
   if test "x${is_cross_compiler}" = xyes; then
-    CXXFLAGS_FOR_TARGET="-g -O2"
+    CXXFLAGS_FOR_TARGET="-g -O0"
   else
     CXXFLAGS_FOR_TARGET=$CXXFLAGS
     case " $CXXFLAGS " in
-      *" -O2 "*) ;;
-      *) CXXFLAGS_FOR_TARGET="-O2 $CXXFLAGS_FOR_TARGET" ;;
+      *" -O0 "*) ;;
+      *) CXXFLAGS_FOR_TARGET="-O0 $CXXFLAGS_FOR_TARGET" ;;
     esac
     case " $CXXFLAGS " in
       *" -g "* | *" -g3 "*) ;;
@@ -9577,7 +9577,7 @@ case $target in
     ;;
 esac
 
-# If --enable-target-optspace always use -Os instead of -O2 to build
+# If --enable-target-optspace always use -Os instead of -O0 to build
 # the target libraries, similarly if it is not specified, use -Os
 # on selected platforms.
 ospace_frag=/dev/null
