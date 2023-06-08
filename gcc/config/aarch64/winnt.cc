@@ -633,12 +633,6 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
         fprintf (f, "\t.seh_save_fplr_x	%d\n", addend);
         emitted = true;
       }
-      else if (src_bitmap != 0 && 
-          addend != 0)
-      {
-        fprintf (f, "\t.seh_save_fplr_x	%d\n", addend);
-        emitted = true;
-      }
     }
   else
     {
