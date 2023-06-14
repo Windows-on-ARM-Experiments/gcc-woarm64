@@ -757,7 +757,8 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
             break;
           }
       }
-      else if (GET_CODE (pat) == RETURN)
+      else if (GET_CODE (pat) == RETURN ||
+        GET_CODE (pat) == JUMP_INSN)
       {
         seh_emit_end_epilogue (f, seh);
         emitted = true;
@@ -940,5 +941,10 @@ aarch64_pe_begin_epilogue (FILE *file)
   seh->in_epilogue = true;
 }
 
+void 
+aarch64_pe_override_options (void)
+{
+  global_options.x_flag_shrink_wrap = false;
+}
 
 #include "gt-winnt.h"

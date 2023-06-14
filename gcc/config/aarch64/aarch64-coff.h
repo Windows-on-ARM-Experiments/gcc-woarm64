@@ -101,4 +101,11 @@
 #undef STACK_CHECK_STATIC_BUILTIN
 #define STACK_CHECK_STATIC_BUILTIN 1
 
+#undef SUBTARGET_OVERRIDE_OPTIONS
+#define SUBTARGET_OVERRIDE_OPTIONS AARCH64_PE_OVERRIDE_OPTIONS
+
+#undef AARCH64_PE_OVERRIDE_OPTIONS
+#define AARCH64_PE_OVERRIDE_OPTIONS aarch64_pe_override_options ()
+extern void aarch64_pe_override_options (void);
+
 #endif
