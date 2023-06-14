@@ -500,19 +500,6 @@ aarch64_pe_seh_fini (FILE *f)
   fputs ("\t.seh_endproc\n", f);
 }
 
-/* Emit an assembler directive to save REG via a PUSH.  */
-
-static void
-seh_emit_push (FILE *f, struct seh_frame_state *seh, rtx reg)
-{
-  const unsigned int regno = REGNO (reg);
-  gcc_checking_assert (GP_REGNUM_P (regno));
-
-  fputs ("\t.seh_pushreg\t", f);
-  aarch64_print_reg (reg, 0, f);
-  fputc ('\n', f);
-}
-
 /* Emit an assembler directive to save REG at CFA - CFA_OFFSET.  */
 
 static void
@@ -525,7 +512,7 @@ seh_emit_save (FILE *f, struct seh_frame_state *seh,
 	 : GP_REGNUM_P (regno) ?  " \t.seh_save_reg\t"
 	 : (gcc_unreachable (), "")), f);
   aarch64_print_reg (reg, 0, f);
-  fprintf (f, ", " HOST_WIDE_INT_PRINT_DEC " \n", offset);
+  fprintf (f, ", " HOST_WIDE_INT_PRINT_DEC " \n", abs(offset));
 }
 
 /* Emit an assembler directive to adjust RSP by OFFSET.  */
@@ -561,25 +548,20 @@ seh_emit_end_epilogue (FILE *file, struct seh_frame_state *seh)
 }
 
 
-#define CALLEE_SAVED_REG_NUMBER(r)			\
-  (call_used_regs[(r)] == 0)
+#define CALLEE_SAVED_REG_NUMBER(r) \
+  ((r) >= 19 && (r) <= 30)
 
-static bool
-seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
+#define MIN(a,b) (((a)<(b))?(a):(b))
+
+static HOST_WIDE_INT
+seh_parallel_offset (rtx pat, int wanted_regnum)
 {
-  rtx dest, src;
-  HOST_WIDE_INT addend = 0;
-  bool emitted = false;
+  rtx dest, src;  
+  HOST_WIDE_INT result = 0;
 
-  if (GET_CODE (pat) == SEQUENCE)
-    {
-      fputs ("// TODO SEQUENCE\n", f);  
-    }
-  else if (GET_CODE (pat) == PARALLEL)
+  if (GET_CODE (pat) == PARALLEL)
     { 
-      int i, regno, n = XVECLEN (pat, 0);
-      int min_src = 0, min_dst = 0;
-      unsigned int src_bitmap = 0, dest_bitmap = 0;
+      int i, n = XVECLEN (pat, 0);
 
       for (i = 0; i < n; ++i)
         {
@@ -591,46 +573,93 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
           dest = SET_DEST (ele);
           src = SET_SRC (ele);
 
-          if (GET_CODE (src) == PLUS)
+          if (GET_CODE (dest) == REG &&
+              REGNO (dest) == wanted_regnum &&
+              GET_CODE (src) == MEM &&
+              GET_CODE (XEXP (src, 0)) == PLUS &&
+              XEXP (XEXP (src, 0), 0) == stack_pointer_rtx)
+            {
+              result = INTVAL (XEXP (XEXP (src, 0), 1));
+            }
+          
+          if (GET_CODE (src) == REG &&
+              REGNO (src) == wanted_regnum &&
+              GET_CODE (dest) == MEM &&
+              GET_CODE (XEXP (dest, 0)) == PLUS &&
+              XEXP (XEXP (dest, 0), 0) == stack_pointer_rtx)
+            {
+              result = INTVAL (XEXP (XEXP (dest, 0), 1));
+            }
+        }
+    }
+
+  return result;
+}
+
+static bool
+seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
+{
+  rtx dest, src;  
+  bool emitted = false;
+
+  if (GET_CODE (pat) == SEQUENCE)
+    {
+      fputs ("// TODO SEQUENCE\n", f);  
+    }
+  else if (GET_CODE (pat) == PARALLEL)
+    { 
+      int i, n = XVECLEN (pat, 0);
+      int regno, min_regno = 32;
+      int reg_count = 0;
+      HOST_WIDE_INT increment = 0;
+
+      for (i = 0; i < n; ++i)
+        {
+          rtx ele = XVECEXP (pat, 0, i);
+
+          if (GET_CODE (ele) != SET)
+            continue;
+
+          dest = SET_DEST (ele);
+          src = SET_SRC (ele);
+
+          if (GET_CODE (dest) == REG &&
+              GET_CODE (src) == PLUS &&
+              XEXP (src, 0) == stack_pointer_rtx)
           {
-            addend = INTVAL (XEXP (src, 1));
-            fprintf (f, "// -- PARALLEL src PLUS %d\n", addend);
+            increment = INTVAL (XEXP (src, 1));
           }
 
           if (GET_CODE (src) == REG)
           {            
             regno = REGNO (src);
-            fprintf (f, "// -- PARALLEL src %d\n", regno);
+
             if (CALLEE_SAVED_REG_NUMBER(regno))
-              src_bitmap |= (1 << regno);
+              {
+                reg_count += 1;
+                min_regno = MIN(regno, min_regno);
+              }
           }
 
           if (GET_CODE (dest) == REG)
-          {            
-            regno = REGNO (dest);
-            fprintf (f, "// -- PARALLEL dest %d\n", regno);
-            if (CALLEE_SAVED_REG_NUMBER(regno))
-              dest_bitmap |= (1 << regno);
-          }
+            {            
+              regno = REGNO (dest);
+
+              if (CALLEE_SAVED_REG_NUMBER(regno))
+              {
+                reg_count += 1;
+                min_regno = MIN(regno, min_regno);
+              }
+            }
         }
 
-      if (src_bitmap == ((1 << 29) | (1 << 30)) && 
-          dest_bitmap == (1 << 31) && 
-          addend != 0)
+      if (reg_count == 2)
       {
-        fprintf (f, "\t.seh_save_fplr_x	%d\n", -addend);
-        emitted = true;
-      }
-      else if (src_bitmap == ((1 << 29) | (1 << 30)) && 
-          dest_bitmap == 0)
-      {
-        fprintf (f, "\t.seh_save_fplr	%d\n", -addend);
-        emitted = true;
-      }
-      else if (dest_bitmap == ((1 << 29) | (1 << 30) | (1 << 31)) && 
-          addend != 0)
-      {
-        fprintf (f, "\t.seh_save_fplr_x	%d\n", addend);
+        fprintf (f, "\t.seh_save_%s	x%d, %d\n", 
+          increment != 0 ? "regp_x" : "regp",
+          min_regno,
+          increment != 0 ? abs(increment) : seh_parallel_offset (pat, min_regno));
+
         emitted = true;
       }
     }
@@ -640,6 +669,7 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
 
       if (GET_CODE (pat) == SET)
       {
+        HOST_WIDE_INT increment = 0;
         dest = SET_DEST (pat);
 
         switch (GET_CODE (dest))
@@ -667,17 +697,31 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
                 break;
 
               case PLUS: 
-                addend = INTVAL (XEXP (src, 1));
+                increment = INTVAL (XEXP (src, 1));
                 src = XEXP (src, 0);
                 if (dest == hard_frame_pointer_rtx)
                   fputs (" // TODO src=PLUS | dest frame pointer\n", f);
                 else if (dest == stack_pointer_rtx)
                   {
                     gcc_assert (src == stack_pointer_rtx);
-                    emitted = seh_emit_stackalloc (f, seh, addend);
+                    emitted = seh_emit_stackalloc (f, seh, increment);
                   }
                 else
                   fputs (" // TODO src=PLUS | dest other\n", f);
+                break;
+
+              case MEM:
+                src = XEXP (src, 0);
+                if (GET_CODE (src) == PLUS &&
+                    GET_CODE (XEXP (src, 0)) == REG &&
+                    CALLEE_SAVED_REG_NUMBER(REGNO (dest)) &&
+                    XEXP (src, 0) == stack_pointer_rtx)
+                  {
+                    seh_emit_save (f, seh, dest, INTVAL (XEXP (src, 1)));
+                    emitted = true;
+                  }
+                else
+                  fputs (" // TODO src=MEM | dest other\n", f);
                 break;
 
               default:
@@ -688,11 +732,18 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
 
           case MEM: // Save
             dest = XEXP (dest, 0);
-            if (GET_CODE (dest) == PRE_DEC)
+            if (GET_CODE (dest) == PRE_DEC &&
+                CALLEE_SAVED_REG_NUMBER(REGNO (src)) &&
+                XEXP (dest, 0) == stack_pointer_rtx)
               {
-                //gcc_checking_assert (GET_MODE (src) == Pmode);
-                //gcc_checking_assert (REG_P (src));
-                seh_emit_push (f, seh, src);
+                seh_emit_save (f, seh, src, INTVAL (XEXP (dest, 1)));
+                emitted = true;
+              }
+            else if (GET_CODE (dest) == PLUS &&
+                CALLEE_SAVED_REG_NUMBER(REGNO (src)) &&
+                XEXP (dest, 0) == stack_pointer_rtx)
+              {
+                seh_emit_save (f, seh, src, INTVAL (XEXP (dest, 1)));
                 emitted = true;
               }
             else
@@ -873,13 +924,20 @@ aarch64_pe_begin_epilogue (FILE *file)
   if (!TARGET_SEH)
     return;
 
-  seh = cfun->machine->seh;
-  seh->in_epilogue = true;
+  seh = cfun->machine->seh;  
 
   if (seh->is_seh_proc)
-  {
-    fputs ("\t.seh_startepilogue\n", file);
-  }
+    {
+      if (seh->in_prologue)
+        {      
+          fputs ("\t.seh_endprologue\n", file);
+        }
+      
+      fputs ("\t.seh_startepilogue\n", file);
+    }
+
+  seh->in_prologue = false;
+  seh->in_epilogue = true;
 }
 
 
