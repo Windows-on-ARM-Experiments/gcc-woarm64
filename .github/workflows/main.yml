@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - woarm64
   pull_request:
   workflow_dispatch:
 
@@ -11,7 +12,13 @@ permissions: write-all
 
 jobs:
   trigger-build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+
+    env:
+      PAT_ACTION: ${{ secrets.PAT_ACTION }}
 
     steps:
-      - run: echo "Hello World"
+      - uses: actions/checkout@v3
+        with:
+          sparse-checkout: '.github'
+      - run: .github/scripts/trigger-workflow.ps1 -Branch "${{ github.head_ref || github.ref_name }}"
