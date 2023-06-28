@@ -40,7 +40,10 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_ASM_EMIT_EXCEPT_PERSONALITY aarch64_pe_seh_emit_except_personality
 #undef  TARGET_ASM_INIT_SECTIONS
 #define TARGET_ASM_INIT_SECTIONS  aarch64_pe_seh_init_sections
+#undef  SUBTARGET_ASM_UNWIND_INIT
 #define SUBTARGET_ASM_UNWIND_INIT  aarch64_pe_seh_init
+#undef  TARGET_ASM_FINAL_POSTSCAN_INSN
+#define TARGET_ASM_FINAL_POSTSCAN_INSN aarch64_pe_seh_asm_final_postscan_insn
 
 #undef DEFAULT_ABI
 #define DEFAULT_ABI MS_ABI
@@ -73,6 +76,7 @@ extern void aarch64_pe_seh_cold_init (FILE *, const char *);
 extern void aarch64_pe_seh_unwind_emit (FILE *, rtx_insn *);
 extern void aarch64_pe_seh_emit_except_personality (rtx);
 extern void aarch64_pe_seh_init_sections (void);
+extern void aarch64_pe_seh_asm_final_postscan_insn (FILE *stream, rtx_insn *insn, rtx*, int);
 
 /* In aarch64_c */
 extern void aarch64_pe_asm_named_section (const char *, unsigned int, tree);

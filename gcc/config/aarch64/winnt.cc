@@ -439,7 +439,6 @@ aarch64_pe_seh_init (FILE *f)
 void
 aarch64_pe_seh_cold_init (FILE *f, const char *name)
 {
-  fputs (" // aarch64_pe_seh_cold_init\n", f);
   aarch64_pe_seh_init (f);
 }
 
@@ -602,11 +601,7 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
   rtx dest, src;  
   bool emitted = false;
 
-  if (GET_CODE (pat) == SEQUENCE)
-    {
-      fputs ("// TODO SEQUENCE\n", f);  
-    }
-  else if (GET_CODE (pat) == PARALLEL)
+   if (GET_CODE (pat) == PARALLEL)
     { 
       int i, n = XVECLEN (pat, 0);
       int regno, min_regno = 32;
@@ -681,7 +676,7 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
                 if (dest == hard_frame_pointer_rtx &&
                     src == stack_pointer_rtx)
                   {
-                    fputs ("\t.seh_set_fp // bbb\n", f);
+                    fputs ("\t.seh_set_fp\n", f);
                     emitted = true;
                   }
                 else if (CALLEE_SAVED_REG_NUMBER(REGNO (dest)) &&
@@ -690,24 +685,16 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
                     seh_emit_save(f, seh, dest, INTVAL (XEXP (src, 1)));
                     emitted = true;
                   }
-                  else
-                  {
-                    fputs ("// TODO src=REG | dest=REG\n", f);
-                  }
                 break;
 
               case PLUS: 
                 increment = INTVAL (XEXP (src, 1));
                 src = XEXP (src, 0);
-                if (dest == hard_frame_pointer_rtx)
-                  fputs (" // TODO src=PLUS | dest frame pointer\n", f);
-                else if (dest == stack_pointer_rtx)
+                if (dest == stack_pointer_rtx)
                   {
                     gcc_assert (src == stack_pointer_rtx);
                     emitted = seh_emit_stackalloc (f, seh, increment);
                   }
-                else
-                  fputs (" // TODO src=PLUS | dest other\n", f);
                 break;
 
               case MEM:
@@ -720,12 +707,9 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
                     seh_emit_save (f, seh, dest, INTVAL (XEXP (src, 1)));
                     emitted = true;
                   }
-                else
-                  fputs (" // TODO src=MEM | dest other\n", f);
                 break;
 
               default:
-                fputs (" // TODO src=default | dest=REG\n", f);
                 break;
               }
             break;
@@ -746,26 +730,20 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
                 seh_emit_save (f, seh, src, INTVAL (XEXP (dest, 1)));
                 emitted = true;
               }
-            else
-              {
-                fputs (" // TODO dest=MEM\n", f);
-              }
             break;
 
           default:
-            fputs (" // TODO not MEM or REG\n", f);
             break;
           }
       }
       else if (GET_CODE (pat) == RETURN ||
         GET_CODE (pat) == JUMP_INSN)
       {
-        seh_emit_end_epilogue (f, seh);
-        emitted = true;
-      }
-      else
-      {
-        fputs (" // TODO not SET pattern\n", f);
+        if (seh->in_epilogue)
+          {
+            seh_emit_end_epilogue (f, seh);
+            emitted = true;
+          }
       }
     }
 
@@ -781,14 +759,13 @@ aarch64_pe_seh_unwind_emit (FILE *out_file, rtx_insn *insn)
   rtx note, pat;
   struct seh_frame_state *seh;
 
-  if (NOTE_P (insn))
-  {
-    fprintf (asm_out_file, "// %s\n", GET_NOTE_INSN_NAME (NOTE_KIND (insn)));
-    return;
-  }
-
   if (!TARGET_SEH)
     return;
+
+  if (NOTE_P (insn))
+  {
+    return;
+  }
 
   seh = cfun->machine->seh;
 
@@ -806,6 +783,7 @@ aarch64_pe_seh_unwind_emit (FILE *out_file, rtx_insn *insn)
 
   bool related_exp_needed = true;
   bool emitted = false;
+  bool end_epilogue = false;
 
   for (note = REG_NOTES (insn); note ; note = XEXP (note, 1))
     {
@@ -822,31 +800,24 @@ aarch64_pe_seh_unwind_emit (FILE *out_file, rtx_insn *insn)
 	  break;
 
 	case REG_CFA_DEF_CFA:
-    fputs ("// **** REG_CFA_DEF_CFA\n", out_file);
 	  break;
 
 	case REG_CFA_EXPRESSION:
-	  fputs ("// TODO REG_CFA_EXPRESSION\n", out_file);
-	  related_exp_needed = false;
-	  break;
-
 	case REG_CFA_REGISTER:
-	  fputs ("// TODO REG_CFA_REGISTER\n", out_file);
-	  related_exp_needed = false;
-	  break;
-
 	case REG_CFA_ADJUST_CFA:
-	  fputs ("// TODO REG_CFA_ADJUST_CFA\n", out_file);
-	  related_exp_needed = false;
-	  break;
-
 	case REG_CFA_OFFSET:
-	  fputs ("// TODO REG_CFA_OFFSET\n", out_file);
-	  related_exp_needed = false;
+    related_exp_needed = false;
 	  break;
 
-	default:	
-	  fprintf (asm_out_file, "// default %d\n", REG_NOTE_KIND (note)); 
+  case REG_EH_REGION:
+  case REG_CALL_DECL:
+    if (seh->in_epilogue)
+      {
+        end_epilogue = true;
+      }    
+	  break;
+
+	default:
 	  break;
 	}
     }
@@ -857,9 +828,15 @@ aarch64_pe_seh_unwind_emit (FILE *out_file, rtx_insn *insn)
       emitted = seh_pattern_emit (out_file, seh, pat);
     }
 
+  if (end_epilogue)
+    {
+      seh_emit_end_epilogue (out_file, seh);
+      emitted = true;
+    }
+  
   if (!emitted)
     {
-      fputs ("\t.seh_nop // TODO\n", out_file);
+      fputs ("\t.seh_nop\n", out_file);
     }
 }
 
@@ -874,6 +851,33 @@ aarch64_pe_seh_emit_except_personality (rtx personality)
   fputs ("\t.seh_handler\t", asm_out_file);
   output_addr_const (asm_out_file, personality);
   fputs (", @unwind, @except\n", asm_out_file);
+}
+
+void aarch64_pe_seh_asm_final_postscan_insn (FILE *f, rtx_insn *insn, rtx* pat, int op_count)
+{
+  struct seh_frame_state *seh;
+
+  if (!TARGET_SEH)
+    return;
+
+  seh = cfun->machine->seh;
+
+  if (seh && seh->is_seh_proc)
+    {
+      if (seh->in_prologue ||
+        seh->in_epilogue)
+        {      
+          rtx pat = PATTERN(insn);
+
+          if (GET_CODE(pat) == SET &&
+              GET_CODE(SET_SRC(pat)) == ASM_OPERANDS)
+            {
+              int i;
+              for (i = 0; i < op_count; ++i)
+                fputs("\t.seh_nop\n", f);
+            }
+        }
+    }
 }
 
 void
@@ -894,12 +898,9 @@ aarch64_pe_end_function (FILE *f, const char *, tree)
 void
 aarch64_pe_end_cold_function (FILE *f, const char *, tree)
 {
-  fputs (" // aarch64_pe_end_cold_function\n", f);
   aarch64_pe_end_epilogue (f);
   aarch64_pe_seh_fini (f);
 }
-
-
 
 void
 aarch64_pe_end_epilogue (FILE *file)
