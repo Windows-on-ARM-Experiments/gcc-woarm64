@@ -548,7 +548,7 @@ seh_emit_end_epilogue (FILE *file, struct seh_frame_state *seh)
 
 
 #define CALLEE_SAVED_REG_NUMBER(r) \
-  ((r) >= 19 && (r) <= 30)
+  (((r) >= R19_REGNUM && (r) <= R30_REGNUM) || ((r) >= V8_REGNUM && (r) <= V15_REGNUM))
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
@@ -625,7 +625,7 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
             increment = INTVAL (XEXP (src, 1));
           }
 
-          if (GET_CODE (src) == REG)
+          if (seh->in_prologue && GET_CODE (src) == REG)
           {            
             regno = REGNO (src);
 
@@ -636,7 +636,7 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
               }
           }
 
-          if (GET_CODE (dest) == REG)
+          if (seh->in_epilogue && GET_CODE (dest) == REG)
             {            
               regno = REGNO (dest);
 
