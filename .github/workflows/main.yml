@@ -7,6 +7,8 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions: write-all
+
 jobs:
   trigger-build:
     runs-on: ubuntu-latest
