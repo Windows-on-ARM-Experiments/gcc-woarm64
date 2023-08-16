@@ -2833,9 +2833,32 @@ handle_aarch64_vector_pcs_attribute (tree *node, tree name, tree,
 
     case ARM_PCS_TLSDESC:
     case ARM_PCS_UNKNOWN:
+    case ARM_PCS_MS_VARIADIC:
       break;
     }
   gcc_unreachable ();
+}
+
+
+/* Handle a "ms_abi" arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_aarch64_abi_attribute (tree *node, tree name, tree, int,
+			   bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) != FUNCTION_TYPE
+      && TREE_CODE (*node) != METHOD_TYPE
+      && TREE_CODE (*node) != FIELD_DECL
+      && TREE_CODE (*node) != TYPE_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute only applies to functions",
+	       name);
+      *no_add_attrs = true;
+      return NULL_TREE;
+    }
+
+  return NULL_TREE;
 }
 
 /* Table of machine attributes.  */
@@ -2859,6 +2882,8 @@ static const struct attribute_spec aarch64_attribute_table[] =
   { "dllexport", 0, 0, false, false, false, false, handle_dll_attribute,
     NULL },
 #endif
+  { "ms_abi", 0, 0, false, true, true, true, handle_aarch64_abi_attribute, NULL },
+  { "ms_abi va_list", 0, 0, false, false, false, false, NULL, NULL },
 #ifdef SUBTARGET_ATTRIBUTE_TABLE
   SUBTARGET_ATTRIBUTE_TABLE,
 #endif
@@ -3223,6 +3248,20 @@ aarch64_sve_abi (void)
     }
   return sve_abi;
 }
+
+static const predefined_function_abi &
+aarch64_ms_variadic_abi (void)
+{
+  predefined_function_abi &ms_variadic_abi = function_abis[ARM_PCS_MS_VARIADIC];
+  if (!ms_variadic_abi.initialized_p ())
+    {
+      ms_variadic_abi.initialize (ARM_PCS_MS_VARIADIC, 
+        default_function_abi.full_reg_clobbers ());
+    }
+  return ms_variadic_abi;
+}
+
+
 
 /* If X is an UNSPEC_SALT_ADDR expression, return the address that it
    wraps, otherwise return X itself.  */
@@ -4086,11 +4125,35 @@ aarch64_takes_arguments_in_sve_regs_p (const_tree fntype)
   return false;
 }
 
+/* Return true if a function has variadic argumens.  */
+
+static bool
+aarch64_has_variadic_arguments (const_tree fntype)
+{
+  if (TYPE_NO_NAMED_ARGS_STDARG_P (TREE_TYPE (fntype)))
+    return true;
+
+  int arg_count = 0;
+  for (tree chain = TYPE_ARG_TYPES (fntype);
+       chain;
+       chain = TREE_CHAIN (chain))
+    {
+      if (chain == void_list_node)
+        return false;
+      arg_count++;
+    }
+
+  return arg_count > 0;
+}
+
 /* Implement TARGET_FNTYPE_ABI.  */
 
 static const predefined_function_abi &
 aarch64_fntype_abi (const_tree fntype)
 {
+  if (aarch64_has_variadic_arguments (fntype))
+    return aarch64_ms_variadic_abi ();
+
   if (lookup_attribute ("aarch64_vector_pcs", TYPE_ATTRIBUTES (fntype)))
     return aarch64_simd_abi ();
 
@@ -4133,6 +4196,10 @@ aarch64_reg_save_mode (unsigned int regno)
       case ARM_PCS_AAPCS64:
 	/* Only the low 64 bits are saved by the base PCS.  */
 	return DFmode;
+
+      case ARM_PCS_MS_VARIADIC:
+        /* Microsoft only uses GP registers for variadics.  */
+	return DImode;
 
       case ARM_PCS_SIMD:
 	/* The vector PCS saves the low 128 bits (which is the full
@@ -8026,8 +8093,11 @@ aarch64_layout_arg (cumulative_args_t pcum_v, const function_arg_info &arg)
     size = GET_MODE_SIZE (mode).to_constant ();
   size = ROUND_UP (size, UNITS_PER_WORD);
 
-  allocate_ncrn = (type) ? !(FLOAT_TYPE_P (type)) : !FLOAT_MODE_P (mode);
-  allocate_nvrn = aarch64_vfp_is_call_candidate (pcum_v,
+  allocate_ncrn = pcum->pcs_variant == ARM_PCS_MS_VARIADIC ||
+		  ((type) ? !(FLOAT_TYPE_P (type)) : !FLOAT_MODE_P (mode));
+
+  allocate_nvrn = pcum->pcs_variant != ARM_PCS_MS_VARIADIC &&
+		  aarch64_vfp_is_call_candidate (pcum_v,
 						 mode,
 						 type,
 						 &nregs);
@@ -8226,7 +8296,8 @@ aarch64_function_arg (cumulative_args_t pcum_v, const function_arg_info &arg)
   CUMULATIVE_ARGS *pcum = get_cumulative_args (pcum_v);
   gcc_assert (pcum->pcs_variant == ARM_PCS_AAPCS64
 	      || pcum->pcs_variant == ARM_PCS_SIMD
-	      || pcum->pcs_variant == ARM_PCS_SVE);
+	      || pcum->pcs_variant == ARM_PCS_SVE
+              || pcum->pcs_variant == ARM_PCS_MS_VARIADIC);
 
   if (arg.end_marker_p ())
     return gen_int_mode (pcum->pcs_variant, DImode);
@@ -8293,7 +8364,8 @@ aarch64_function_arg_advance (cumulative_args_t pcum_v,
   CUMULATIVE_ARGS *pcum = get_cumulative_args (pcum_v);
   if (pcum->pcs_variant == ARM_PCS_AAPCS64
       || pcum->pcs_variant == ARM_PCS_SIMD
-      || pcum->pcs_variant == ARM_PCS_SVE)
+      || pcum->pcs_variant == ARM_PCS_SVE
+      || pcum->pcs_variant == ARM_PCS_MS_VARIADIC)
     {
       aarch64_layout_arg (pcum_v, arg);
       gcc_assert ((pcum->aapcs_reg != NULL_RTX)
@@ -15796,6 +15868,39 @@ aarch64_memory_move_cost (machine_mode mode, reg_class_t rclass_i, bool in)
 	  : aarch64_tune_params.memmov_cost.store_int);
 }
 
+/* On AAPCS systems, this is the "struct __va_list".  */
+static GTY(()) tree va_list_type;
+
+/* Internal method for va builtins.  */
+
+static void
+aarch64_init_builtins_va_builtins_abi (void)
+{
+  tree ms_va_ref;
+  tree fnvoid_va_end_ms;
+  tree fnvoid_va_start_ms;
+  tree fnvoid_va_copy_ms;
+  tree fnattr_ms = NULL_TREE;
+
+  fnattr_ms = build_tree_list (get_identifier ("ms_abi"), NULL_TREE);
+  ms_va_ref = build_reference_type (va_list_type);
+
+  fnvoid_va_end_ms = build_function_type_list (void_type_node, ms_va_ref,
+					       NULL_TREE);
+  fnvoid_va_start_ms
+    = build_varargs_function_type_list (void_type_node, ms_va_ref, NULL_TREE);
+  fnvoid_va_copy_ms
+    = build_function_type_list (void_type_node, ms_va_ref,
+				va_list_type, NULL_TREE);
+
+  add_builtin_function ("__builtin_ms_va_start", fnvoid_va_start_ms,
+  			BUILT_IN_VA_START, BUILT_IN_NORMAL, NULL, fnattr_ms);
+  add_builtin_function ("__builtin_ms_va_end", fnvoid_va_end_ms,
+  			BUILT_IN_VA_END, BUILT_IN_NORMAL, NULL, fnattr_ms);
+  add_builtin_function ("__builtin_ms_va_copy", fnvoid_va_copy_ms,
+			BUILT_IN_VA_COPY, BUILT_IN_NORMAL, NULL, fnattr_ms);
+}
+
 /* Implement TARGET_INSN_COST.  We have the opportunity to do something
    much more productive here, such as using insn attributes to cost things.
    But we don't, not yet.
@@ -15827,6 +15932,8 @@ aarch64_init_builtins ()
 #ifdef SUBTARGET_INIT_BUILTINS
   SUBTARGET_INIT_BUILTINS;
 #endif
+  if (!TARGET_PECOFF)
+    aarch64_init_builtins_va_builtins_abi();
 }
 
 /* Implement TARGET_FOLD_BUILTIN.  */
@@ -20184,8 +20291,7 @@ aarch64_load_tp (rtx target)
   return target;
 }
 
-/* On AAPCS systems, this is the "struct __va_list".  */
-static GTY(()) tree va_list_type;
+
 
 /* Implement TARGET_BUILD_BUILTIN_VA_LIST.
    Return the type to use as __builtin_va_list.
@@ -20204,72 +20310,156 @@ static GTY(()) tree va_list_type;
 static tree
 aarch64_build_builtin_va_list (void)
 {
-  tree va_list_name;
-  tree f_stack, f_grtop, f_vrtop, f_groff, f_vroff;
+  if (TARGET_PECOFF)
+  {
+    /* For MS_ABI we use plain pointer to argument area.  */
+    tree char_ptr_type = build_pointer_type (char_type_node);
+    tree attr = tree_cons (get_identifier ("ms_abi va_list"), NULL_TREE,
+                  TYPE_ATTRIBUTES (char_ptr_type));
+    va_list_type = build_type_attribute_variant (char_ptr_type, attr);
 
-  /* Create the type.  */
-  va_list_type = lang_hooks.types.make_type (RECORD_TYPE);
-  /* Give it the required name.  */
-  va_list_name = build_decl (BUILTINS_LOCATION,
-			     TYPE_DECL,
-			     get_identifier ("__va_list"),
-			     va_list_type);
-  DECL_ARTIFICIAL (va_list_name) = 1;
-  TYPE_NAME (va_list_type) = va_list_name;
-  TYPE_STUB_DECL (va_list_type) = va_list_name;
+    return va_list_type;
+  }
+  else
+  {
+    tree va_list_name;
+    tree f_stack, f_grtop, f_vrtop, f_groff, f_vroff;
 
-  /* Create the fields.  */
-  f_stack = build_decl (BUILTINS_LOCATION,
-			FIELD_DECL, get_identifier ("__stack"),
-			ptr_type_node);
-  f_grtop = build_decl (BUILTINS_LOCATION,
-			FIELD_DECL, get_identifier ("__gr_top"),
-			ptr_type_node);
-  f_vrtop = build_decl (BUILTINS_LOCATION,
-			FIELD_DECL, get_identifier ("__vr_top"),
-			ptr_type_node);
-  f_groff = build_decl (BUILTINS_LOCATION,
-			FIELD_DECL, get_identifier ("__gr_offs"),
-			integer_type_node);
-  f_vroff = build_decl (BUILTINS_LOCATION,
-			FIELD_DECL, get_identifier ("__vr_offs"),
-			integer_type_node);
+    /* Create the type.  */
+    va_list_type = lang_hooks.types.make_type (RECORD_TYPE);
+    /* Give it the required name.  */
+    va_list_name = build_decl (BUILTINS_LOCATION,
+            TYPE_DECL,
+            get_identifier ("__va_list"),
+            va_list_type);
+    DECL_ARTIFICIAL (va_list_name) = 1;
+    TYPE_NAME (va_list_type) = va_list_name;
+    TYPE_STUB_DECL (va_list_type) = va_list_name;
 
-  /* Tell tree-stdarg pass about our internal offset fields.
-     NOTE: va_list_gpr/fpr_counter_field are only used for tree comparision
-     purpose to identify whether the code is updating va_list internal
-     offset fields through irregular way.  */
-  va_list_gpr_counter_field = f_groff;
-  va_list_fpr_counter_field = f_vroff;
+    /* Create the fields.  */
+    f_stack = build_decl (BUILTINS_LOCATION,
+        FIELD_DECL, get_identifier ("__stack"),
+        ptr_type_node);
+    f_grtop = build_decl (BUILTINS_LOCATION,
+        FIELD_DECL, get_identifier ("__gr_top"),
+        ptr_type_node);
+    f_vrtop = build_decl (BUILTINS_LOCATION,
+        FIELD_DECL, get_identifier ("__vr_top"),
+        ptr_type_node);
+    f_groff = build_decl (BUILTINS_LOCATION,
+        FIELD_DECL, get_identifier ("__gr_offs"),
+        integer_type_node);
+    f_vroff = build_decl (BUILTINS_LOCATION,
+        FIELD_DECL, get_identifier ("__vr_offs"),
+        integer_type_node);
 
-  DECL_ARTIFICIAL (f_stack) = 1;
-  DECL_ARTIFICIAL (f_grtop) = 1;
-  DECL_ARTIFICIAL (f_vrtop) = 1;
-  DECL_ARTIFICIAL (f_groff) = 1;
-  DECL_ARTIFICIAL (f_vroff) = 1;
+    /* Tell tree-stdarg pass about our internal offset fields.
+      NOTE: va_list_gpr/fpr_counter_field are only used for tree comparision
+      purpose to identify whether the code is updating va_list internal
+      offset fields through irregular way.  */
+    va_list_gpr_counter_field = f_groff;
+    va_list_fpr_counter_field = f_vroff;
 
-  DECL_FIELD_CONTEXT (f_stack) = va_list_type;
-  DECL_FIELD_CONTEXT (f_grtop) = va_list_type;
-  DECL_FIELD_CONTEXT (f_vrtop) = va_list_type;
-  DECL_FIELD_CONTEXT (f_groff) = va_list_type;
-  DECL_FIELD_CONTEXT (f_vroff) = va_list_type;
+    DECL_ARTIFICIAL (f_stack) = 1;
+    DECL_ARTIFICIAL (f_grtop) = 1;
+    DECL_ARTIFICIAL (f_vrtop) = 1;
+    DECL_ARTIFICIAL (f_groff) = 1;
+    DECL_ARTIFICIAL (f_vroff) = 1;
 
-  TYPE_FIELDS (va_list_type) = f_stack;
-  DECL_CHAIN (f_stack) = f_grtop;
-  DECL_CHAIN (f_grtop) = f_vrtop;
-  DECL_CHAIN (f_vrtop) = f_groff;
-  DECL_CHAIN (f_groff) = f_vroff;
+    DECL_FIELD_CONTEXT (f_stack) = va_list_type;
+    DECL_FIELD_CONTEXT (f_grtop) = va_list_type;
+    DECL_FIELD_CONTEXT (f_vrtop) = va_list_type;
+    DECL_FIELD_CONTEXT (f_groff) = va_list_type;
+    DECL_FIELD_CONTEXT (f_vroff) = va_list_type;
 
-  /* Compute its layout.  */
-  layout_type (va_list_type);
+    TYPE_FIELDS (va_list_type) = f_stack;
+    DECL_CHAIN (f_stack) = f_grtop;
+    DECL_CHAIN (f_grtop) = f_vrtop;
+    DECL_CHAIN (f_vrtop) = f_groff;
+    DECL_CHAIN (f_groff) = f_vroff;
 
-  return va_list_type;
+    /* Compute its layout.  */
+    layout_type (va_list_type);
+
+    return va_list_type;
+  }
 }
+
+/* Iterate through the target-specific builtin types for va_list.
+   IDX denotes the iterator, *PTREE is set to the result type of
+   the va_list builtin, and *PNAME to its internal type.
+   Returns zero if there is no element for this index, otherwise
+   IDX should be increased upon the next call.
+   Note, do not iterate a base builtin's name like __builtin_va_list.
+   Used from c_common_nodes_and_builtins.  */
+
+static int
+aarch64_enum_va_list (int idx, const char **pname, tree *ptree)
+{
+  if (TARGET_64BIT)
+    {
+      switch (idx)
+	{
+	default:
+	  break;
+
+	case 0:
+	  *ptree = va_list_type;
+	  *pname = "__builtin_ms_va_list";
+	  return 1;
+	}
+    }
+
+  return 0;
+}
+
+/* True if MS_ABI attribute exists.  */
+static bool
+aarch64_is_ms_abi (const_tree fntype)
+{
+  if (!fntype || fntype == NULL_TREE || TYPE_ATTRIBUTES (fntype) == NULL_TREE)
+    return false;
+
+  return lookup_attribute ("ms_abi", TYPE_ATTRIBUTES (fntype)) != NULL_TREE;
+}
+
+/* This function returns the calling abi specific va_list type node.
+   It returns  the FNDECL specific va_list type.  */
+
+static tree
+aarch64_fn_abi_va_list (tree fndecl)
+{
+  gcc_assert (fndecl != NULL_TREE);
+
+  if (aarch64_is_ms_abi ((const_tree) fndecl))
+    return va_list_type;
+  
+  return va_list_type_node;
+}
+
+/* Returns the canonical va_list type specified by TYPE. If there
+   is no valid TYPE provided, it return NULL_TREE.  */
+
+static tree
+aarch64_canonical_va_list_type (tree type)
+{
+  if (lookup_attribute ("ms_abi va_list", TYPE_ATTRIBUTES (type)))
+    return va_list_type;
+
+  return std_canonical_va_list_type (type);
+}
+
 
 /* Implement TARGET_EXPAND_BUILTIN_VA_START.  */
 static void
 aarch64_expand_builtin_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
 {
+  if (TARGET_PECOFF)
+  {
+    std_expand_builtin_va_start (valist, nextarg);
+    return;
+  }
+
   const CUMULATIVE_ARGS *cum;
   tree f_stack, f_grtop, f_vrtop, f_groff, f_vroff;
   tree stack, grtop, vrtop, groff, vroff;
@@ -20355,6 +20545,11 @@ static tree
 aarch64_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
 			      gimple_seq *post_p ATTRIBUTE_UNUSED)
 {
+  if (TARGET_PECOFF)
+  {
+    return std_gimplify_va_arg_expr (valist, type, pre_p, post_p);
+  }
+
   tree addr;
   bool indirect_p;
   bool is_ha;		/* is HFA or HVA.  */
@@ -28549,6 +28744,15 @@ aarch64_run_selftests (void)
 
 #undef  TARGET_EXPAND_BUILTIN
 #define TARGET_EXPAND_BUILTIN aarch64_expand_builtin
+
+// #undef TARGET_ENUM_VA_LIST_P
+// #define TARGET_ENUM_VA_LIST_P aarch64_enum_va_list
+
+// #undef TARGET_FN_ABI_VA_LIST
+// #define TARGET_FN_ABI_VA_LIST aarch64_fn_abi_va_list
+
+// #undef TARGET_CANONICAL_VA_LIST_TYPE
+// #define TARGET_CANONICAL_VA_LIST_TYPE aarch64_canonical_va_list_type
 
 #undef TARGET_EXPAND_BUILTIN_VA_START
 #define TARGET_EXPAND_BUILTIN_VA_START aarch64_expand_builtin_va_start

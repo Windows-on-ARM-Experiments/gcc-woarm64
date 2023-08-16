@@ -914,6 +914,9 @@ enum arm_pcs
   ARM_PCS_SVE,			/* For functions that pass or return
 				   values in SVE registers.  */
   ARM_PCS_TLSDESC,		/* For targets of tlsdesc calls.  */
+  ARM_PCS_MS_VARIADIC,		/* Microsoft handles Variadic functions differently. 
+				   All composites are treated alike. 
+				   SIMD and Floating-point Registers aren't used.  */
   ARM_PCS_UNKNOWN
 };
 
