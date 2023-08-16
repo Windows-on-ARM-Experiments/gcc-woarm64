@@ -692,7 +692,6 @@ seh_pattern_emit (FILE *f, struct seh_frame_state *seh, rtx pat)
                 src = XEXP (src, 0);
                 if (dest == stack_pointer_rtx)
                   {
-                    gcc_assert (src == stack_pointer_rtx);
                     emitted = seh_emit_stackalloc (f, seh, increment);
                   }
                 break;
