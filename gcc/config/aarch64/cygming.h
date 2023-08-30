@@ -54,8 +54,8 @@ along with GCC; see the file COPYING3.  If not see
 
 
 /* Support hooks for SEH.  */
-#undef  TARGET_ASM_UNWIND_EMIT
-#define TARGET_ASM_UNWIND_EMIT  i386_pe_seh_unwind_emit
+// #undef  TARGET_ASM_UNWIND_EMIT
+// #define TARGET_ASM_UNWIND_EMIT  i386_pe_seh_unwind_emit
 #undef  TARGET_ASM_UNWIND_EMIT_BEFORE_INSN
 #define TARGET_ASM_UNWIND_EMIT_BEFORE_INSN  false
 // #undef  TARGET_ASM_FUNCTION_PROLOGUE
@@ -113,6 +113,7 @@ extern void i386_pe_end_function (FILE *f, const char *, tree);
 extern void i386_pe_end_cold_function (FILE *f, const char *, tree);
 // extern void aarch64_pe_end_epilogue (FILE *file);
 // extern void aarch64_pe_begin_epilogue (FILE *file);
+extern void i386_pe_record_external_function (tree, const char *);
 
 #define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P mingw_pe_valid_dllimport_attribute_p
 
@@ -312,5 +313,18 @@ extern void i386_pe_end_cold_function (FILE *f, const char *, tree);
    regs, then save them, and then allocate the remaining.  There is no SEH
    unwind info for this later allocation.  */
 #define SEH_MAX_FRAME_SIZE ((2U << 30) - 256)
+
+
+/* Add an external function to the list of functions to be declared at
+   the end of the file.  */
+#undef ASM_OUTPUT_EXTERNAL
+#define ASM_OUTPUT_EXTERNAL(FILE, DECL, NAME)				\
+  do									\
+    {									\
+      if (TREE_CODE (DECL) == FUNCTION_DECL)				\
+	i386_pe_record_external_function ((DECL), (NAME));		\
+      aarch64_asm_output_external (FILE, DECL, NAME);			\
+    }									\
+  while (0)
 
 #endif
