@@ -2798,6 +2798,17 @@ struct dllimport_hasher : ggc_cache_ptr_hash<tree_map>
 
 static GTY((cache)) hash_table<dllimport_hasher> *dllimport_map;
 
+/* Return a unique alias set for the GOT.  */
+
+static alias_set_type
+aarch64_GOT_alias_set (void)
+{
+  static alias_set_type set = -1;
+  if (set == -1)
+    set = new_alias_set ();
+  return set;
+}
+
 static tree
 get_dllimport_decl (tree decl, bool beimport)
 {
@@ -2842,19 +2853,17 @@ get_dllimport_decl (tree decl, bool beimport)
   memcpy (imp_name + prefixlen, name, namelen + 1);
 
   name = ggc_alloc_string (imp_name, namelen + prefixlen);
-  rtl = gen_rtx_SYMBOL_REF (Pmode, name);
-  SET_SYMBOL_REF_DECL (rtl, to);
+  rtl = gen_rtx_SYMBOL_REF (Pmode, name); 
+    SET_SYMBOL_REF_DECL (rtl, to);
   SYMBOL_REF_FLAGS (rtl) = SYMBOL_FLAG_LOCAL | SYMBOL_FLAG_STUBVAR;
   if (!beimport)
     {
       SYMBOL_REF_FLAGS (rtl) |= SYMBOL_FLAG_EXTERNAL;
-#ifdef SUB_TARGET_RECORD_STUB
-      SUB_TARGET_RECORD_STUB (name);
-#endif
+      aarch64_pe_record_stub (name);
     }
 
   rtl = gen_const_mem (Pmode, rtl);
-  // set_mem_alias_set (rtl, ix86_GOT_alias_set ()); // FIXME?
+  set_mem_alias_set (rtl, aarch64_GOT_alias_set ());
 
   SET_DECL_RTL (to, rtl);
   SET_DECL_ASSEMBLER_NAME (to, get_identifier (name));
@@ -2877,6 +2886,7 @@ legitimize_pe_coff_extern_decl (rtx symbol, bool want_reg)
   x = DECL_RTL (imp_decl);
   if (want_reg)
     x = force_reg (Pmode, x);
+
   return x;
 }
 
@@ -2920,9 +2930,8 @@ legitimize_pe_coff_symbol (rtx addr, bool inreg)
   if (!TARGET_PECOFF)
     return NULL_RTX;
 
-  if (TARGET_DLLIMPORT_DECL_ATTRIBUTES)
-    {
-      // fprintf(stderr, "ref flags = %x (%x) (%s)\n", SYMBOL_REF_FLAGS (addr), SYMBOL_FLAG_DLLIMPORT, IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (SYMBOL_REF_DECL(addr))));
+   if (TARGET_DLLIMPORT_DECL_ATTRIBUTES)
+     {
       if (GET_CODE (addr) == SYMBOL_REF && SYMBOL_REF_DLLIMPORT_P (addr))
 	return legitimize_dllimport_symbol (addr, inreg);
       if (GET_CODE (addr) == CONST
@@ -2933,24 +2942,24 @@ legitimize_pe_coff_symbol (rtx addr, bool inreg)
 	  rtx t = legitimize_dllimport_symbol (XEXP (XEXP (addr, 0), 0), inreg);
 	  return gen_rtx_PLUS (Pmode, t, XEXP (XEXP (addr, 0), 1));
 	}
-    }
+     }
 
-  // if (GET_CODE (addr) == SYMBOL_REF
-  //     && !is_imported_p (addr)
-  //     && SYMBOL_REF_EXTERNAL_P (addr)
-  //     && SYMBOL_REF_DECL (addr))
-  //   return legitimize_pe_coff_extern_decl (addr, inreg);
-  //
-  // if (GET_CODE (addr) == CONST
-  //     && GET_CODE (XEXP (addr, 0)) == PLUS
-  //     && GET_CODE (XEXP (XEXP (addr, 0), 0)) == SYMBOL_REF
-  //     && !is_imported_p (XEXP (XEXP (addr, 0), 0))
-  //     && SYMBOL_REF_EXTERNAL_P (XEXP (XEXP (addr, 0), 0))
-  //     && SYMBOL_REF_DECL (XEXP (XEXP (addr, 0), 0)))
-  //   {
-  //     rtx t = legitimize_pe_coff_extern_decl (XEXP (XEXP (addr, 0), 0), inreg);
-  //     return gen_rtx_PLUS (Pmode, t, XEXP (XEXP (addr, 0), 1));
-  //   }
+  if (GET_CODE (addr) == SYMBOL_REF
+      && !is_imported_p (addr)
+      && SYMBOL_REF_EXTERNAL_P (addr)
+      && SYMBOL_REF_DECL (addr))
+    return legitimize_pe_coff_extern_decl (addr, inreg);
+  
+  if (GET_CODE (addr) == CONST
+      && GET_CODE (XEXP (addr, 0)) == PLUS
+      && GET_CODE (XEXP (XEXP (addr, 0), 0)) == SYMBOL_REF
+      && !is_imported_p (XEXP (XEXP (addr, 0), 0))
+      && SYMBOL_REF_EXTERNAL_P (XEXP (XEXP (addr, 0), 0))
+      && SYMBOL_REF_DECL (XEXP (XEXP (addr, 0), 0)))
+    {
+      rtx t = legitimize_pe_coff_extern_decl (XEXP (XEXP (addr, 0), 0), inreg);
+      return gen_rtx_PLUS (Pmode, t, XEXP (XEXP (addr, 0), 1));
+    }
   return NULL_RTX;
 }
 
@@ -3000,12 +3009,16 @@ static void
 aarch64_load_symref_appropriately (rtx dest, rtx imm,
 				   enum aarch64_symbol_type type)
 {
-  // fprintf(stderr, "aarch64_load_symref_appropriately\n");
+  /* If legitimize returns a value 
+     copy it directly to the destination and return. */
 
-  // rtx tmp = legitimize_pe_coff_symbol (imm, false);
-  //
-  // if (tmp)
-  //   imm = tmp;
+  rtx tmp = legitimize_pe_coff_symbol (imm, true);
+
+  if (tmp)
+    {
+       emit_insn (gen_rtx_SET (dest, tmp));
+       return;
+    }
 
   switch (type)
     {
@@ -11318,11 +11331,10 @@ aarch64_expand_call (rtx result, rtx mem, rtx cookie, bool sibcall)
   gcc_assert (MEM_P (mem));
   callee = XEXP (mem, 0);
 
-  // FIXME?
-  // tmp = legitimize_pe_coff_symbol (callee, false);
+  tmp = legitimize_pe_coff_symbol (callee, false);
 
-  // if (tmp)
-    // callee = tmp;
+  if (tmp)
+    callee = tmp;
 
   mode = GET_MODE (callee);
   gcc_assert (mode == Pmode);
@@ -12806,12 +12818,12 @@ aarch64_anchor_offset (HOST_WIDE_INT offset, HOST_WIDE_INT size,
 static rtx
 aarch64_legitimize_address (rtx x, rtx /* orig_x  */, machine_mode mode)
 {
-  // if (TARGET_DLLIMPORT_DECL_ATTRIBUTES)
-  //   {
-  //     rtx tmp = legitimize_pe_coff_symbol (x, true);
-  //     if (tmp)
-  //       return tmp;
-  //   }
+  if (TARGET_DLLIMPORT_DECL_ATTRIBUTES)
+    {
+      rtx tmp = legitimize_pe_coff_symbol (x, true);
+      if (tmp)
+        return tmp;
+    }
 
   /* Try to split X+CONST into Y=X+(CONST & ~mask), Y+(CONST&mask),
      where mask is selected by alignment and size of the offset.
