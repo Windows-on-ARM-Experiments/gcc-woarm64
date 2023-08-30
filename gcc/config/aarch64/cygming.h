@@ -82,7 +82,6 @@ extern void aarch64_pe_seh_asm_final_postscan_insn (FILE *stream, rtx_insn *insn
 extern void aarch64_pe_asm_named_section (const char *, unsigned int, tree);
 extern bool aarch64_pe_valid_dllimport_attribute_p (const_tree);
 extern void aarch64_pe_maybe_record_exported_symbol (tree, const char *, int);
-extern void aarch64_pe_declare_function_type (FILE *, const char *, int);
 
 /* In winnt */
 extern void aarch64_print_reg (rtx, int, FILE*);
@@ -90,6 +89,10 @@ extern void aarch64_pe_end_function (FILE *f, const char *, tree);
 extern void aarch64_pe_end_cold_function (FILE *f, const char *, tree);
 extern void aarch64_pe_end_epilogue (FILE *file);
 extern void aarch64_pe_begin_epilogue (FILE *file);
+extern void aarch64_pe_file_end (void);
+extern void aarch64_pe_declare_function_type (FILE *file, const char *name, int pub);
+extern void aarch64_pe_record_external_function (tree decl, const char *name);
+extern void aarch64_pe_record_stub (const char *name);
 
 #define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P aarch64_pe_valid_dllimport_attribute_p
 
@@ -129,6 +132,11 @@ extern void aarch64_pe_begin_epilogue (FILE *file);
 #undef WCHAR_TYPE
 #define WCHAR_TYPE_SIZE 16
 #define WCHAR_TYPE "short unsigned int"
+
+#define drectve_section() \
+  (fprintf (asm_out_file, "\t.section .drectve\n"), \
+   in_section = NULL)
+
 
 /* This implements the `alias' attribute, keeping any stdcall or
    fastcall decoration.  */
@@ -273,5 +281,25 @@ extern void aarch64_pe_begin_epilogue (FILE *file);
    regs, then save them, and then allocate the remaining.  There is no SEH
    unwind info for this later allocation.  */
 #define SEH_MAX_FRAME_SIZE ((2U << 30) - 256)
+
+/* Output function declarations at the end of the file.  */
+#undef TARGET_ASM_FILE_END
+#define TARGET_ASM_FILE_END aarch64_pe_file_end
+
+/* Add an external function to the list of functions to be declared at
+   the end of the file.  */
+#undef ASM_OUTPUT_EXTERNAL
+#define ASM_OUTPUT_EXTERNAL(FILE, DECL, NAME)				\
+  do									\
+    {									\
+      if (TREE_CODE (DECL) == FUNCTION_DECL)				\
+	aarch64_pe_record_external_function ((DECL), (NAME));		\
+      aarch64_asm_output_external (FILE, DECL, NAME);			\
+    }									\
+  while (0)
+
+/* Declare the type properly for any external libcall.  */
+#define ASM_OUTPUT_EXTERNAL_LIBCALL(FILE, FUN) \
+  aarch64_pe_declare_function_type (FILE, XSTR (FUN, 0), 1)
 
 #endif

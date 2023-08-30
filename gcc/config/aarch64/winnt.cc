@@ -109,6 +109,53 @@ aarch64_pe_valid_dllimport_attribute_p (const_tree decl)
   return true;
 }
 
+/* Mark a function appropriately.  This should only be called for
+   functions for which we are not emitting COFF debugging information.
+   FILE is the assembler output file, NAME is the name of the
+   function, and PUB is nonzero if the function is globally
+   visible.  */
+
+void
+aarch64_pe_declare_function_type (FILE *file, const char *name, int pub)
+{
+  fprintf (file, "\t.def\t");
+  assemble_name (file, name);
+  fprintf (file, ";\t.scl\t%d;\t.type\t%d;\t.endef\n",
+	   pub ? (int) C_EXT : (int) C_STAT,
+	   (int) DT_FCN << N_BTSHFT);
+}
+
+
+
+/* Keep a list of external functions.  */
+
+struct GTY(()) extern_list
+{
+  struct extern_list *next;
+  tree decl;
+  const char *name;
+};
+
+static GTY(()) struct extern_list *extern_head;
+
+/* Assemble an external function reference.  We need to keep a list of
+   these, so that we can output the function types at the end of the
+   assembly.  We can't output the types now, because we might see a
+   definition of the function later on and emit debugging information
+   for it then.  */
+
+void
+aarch64_pe_record_external_function (tree decl, const char *name)
+{
+  struct extern_list *p;
+
+  p = ggc_alloc<extern_list> ();
+  p->next = extern_head;
+  p->decl = decl;
+  p->name = name;
+  extern_head = p;
+}
+
 /* Keep a list of exported symbols.  */
 
 struct GTY(()) export_list
@@ -118,7 +165,16 @@ struct GTY(()) export_list
   int is_data;		/* used to type tag exported symbols.  */
 };
 
+/* Keep a list of stub symbols.  */
+
+struct GTY(()) stub_list
+{
+  struct stub_list *next;
+  const char *name;
+};
+
 static GTY(()) struct export_list *export_head;
+static GTY(()) struct stub_list *stub_head;
 
 /* Assemble an export symbol entry.  We need to keep a list of
    these, so that we can output the export list at the end of the
@@ -148,22 +204,6 @@ aarch64_pe_maybe_record_exported_symbol (tree decl, const char *name, int is_dat
   p->name = name;
   p->is_data = is_data;
   export_head = p;
-}
-
-/* Mark a function appropriately.  This should only be called for
-   functions for which we are not emitting COFF debugging information.
-   FILE is the assembler output file, NAME is the name of the
-   function, and PUB is nonzero if the function is globally
-   visible.  */
-
-void
-aarch64_pe_declare_function_type (FILE *file, const char *name, int pub)
-{
-  fprintf (file, "\t.def\t");
-  assemble_name (file, name);
-  fprintf (file, ";\t.scl\t%d;\t.type\t%d;\t.endef\n",
-	   pub ? (int) C_EXT : (int) C_STAT,
-	   (int) DT_FCN << N_BTSHFT);
 }
 
 /* Handle a "selectany" attribute;
@@ -945,6 +985,151 @@ void
 aarch64_pe_override_options (void)
 {
   global_options.x_flag_shrink_wrap = false;
+}
+
+
+void
+aarch64_pe_record_stub (const char *name)
+{
+  struct stub_list *p;
+
+  if (!name || *name == 0)
+    return;
+
+  p = stub_head;
+  while (p != NULL)
+    {
+      if (p->name[0] == *name
+          && !strcmp (p->name, name))
+	return;
+      p = p->next;
+    }
+
+  p = ggc_alloc<stub_list> ();
+  p->next = stub_head;
+  p->name = name;
+  stub_head = p;
+}
+
+
+#ifdef CXX_WRAP_SPEC_LIST
+
+/* Search for a function named TARGET in the list of library wrappers
+   we are using, returning a pointer to it if found or NULL if not.
+   This function might be called on quite a few symbols, and we only
+   have the list of names of wrapped functions available to us as a
+   spec string, so first time round we lazily initialise a hash table
+   to make things quicker.  */
+
+static const char *
+aarch64_find_on_wrapper_list (const char *target)
+{
+  static char first_time = 1;
+  static hash_table<nofree_string_hash> *wrappers;
+
+  if (first_time)
+    {
+      /* Beware that this is not a complicated parser, it assumes
+         that any sequence of non-whitespace beginning with an
+	 underscore is one of the wrapped symbols.  For now that's
+	 adequate to distinguish symbols from spec substitutions
+	 and command-line options.  */
+      static char wrapper_list_buffer[] = CXX_WRAP_SPEC_LIST;
+      char *bufptr;
+      /* Breaks up the char array into separated strings
+         strings and enter them into the hash table.  */
+      wrappers = new hash_table<nofree_string_hash> (8);
+      for (bufptr = wrapper_list_buffer; *bufptr; ++bufptr)
+	{
+	  char *found = NULL;
+	  if (ISSPACE (*bufptr))
+	    continue;
+	  if (*bufptr == '_')
+	    found = bufptr;
+	  while (*bufptr && !ISSPACE (*bufptr))
+	    ++bufptr;
+	  if (*bufptr)
+	    *bufptr = 0;
+	  if (found)
+	    *wrappers->find_slot (found, INSERT) = found;
+	}
+      first_time = 0;
+    }
+
+  return wrappers->find (target);
+}
+
+#endif /* CXX_WRAP_SPEC_LIST */
+
+/* This is called at the end of assembly.  For each external function
+   which has not been defined, we output a declaration now.  We also
+   output the .drectve section.  */
+
+void
+aarch64_pe_file_end (void)
+{
+  struct extern_list *p;
+
+  for (p = extern_head; p != NULL; p = p->next)
+    {
+      tree decl;
+
+      decl = p->decl;
+
+      /* Positively ensure only one declaration for any given symbol.  */
+      if (! TREE_ASM_WRITTEN (decl)
+	  && TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)))
+	{
+#ifdef CXX_WRAP_SPEC_LIST
+	  /* To ensure the DLL that provides the corresponding real
+	     functions is still loaded at runtime, we must reference
+	     the real function so that an (unused) import is created.  */
+	  const char *realsym = aarch64_find_on_wrapper_list (p->name);
+	  if (realsym)
+	    aarch64_pe_declare_function_type (asm_out_file,
+		concat ("__real_", realsym, NULL), TREE_PUBLIC (decl));
+#endif /* CXX_WRAP_SPEC_LIST */
+	  TREE_ASM_WRITTEN (decl) = 1;
+	  aarch64_pe_declare_function_type (asm_out_file, p->name,
+					 TREE_PUBLIC (decl));
+	}
+    }
+
+  if (export_head)
+    {
+      struct export_list *q;
+      drectve_section ();
+      for (q = export_head; q != NULL; q = q->next)
+	{
+	  fprintf (asm_out_file, "\t.ascii \" -export:\\\"%s\\\"%s\"\n",
+		   default_strip_name_encoding (q->name),
+		   (q->is_data ? ",data" : ""));
+	}
+    }
+
+  if (stub_head)
+    {
+      struct stub_list *q;
+
+      for (q = stub_head; q != NULL; q = q->next)
+	{
+	  const char *name = q->name;
+	  const char *oname;
+
+	  if (name[0] == '*')
+	    ++name;
+	  oname = name;
+	  if (name[0] == '.')
+	    ++name;
+	  if (!startswith (name, "refptr."))
+	    continue;
+	  name += 7;
+	  fprintf (asm_out_file, "\t.section\t.rdata$%s, \"dr\"\n"
+	  		   "\t.globl\t%s\n"
+			   "\t.linkonce\tdiscard\n", oname, oname);
+	  fprintf (asm_out_file, "%s:\n\t.quad\t%s\n", oname, name);
+	}
+    }
 }
 
 #include "gt-winnt.h"
