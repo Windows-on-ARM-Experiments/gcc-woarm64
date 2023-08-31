@@ -4684,13 +4684,14 @@ aarch64_load_symref_appropriately (rtx dest, rtx imm,
 {
   /* FIXME: SYMBOL_SMALL_ABSOLUTE and SYMBOL_SMALL_GOT_28K 
   fail with legitimize */
-  if (type != SYMBOL_SMALL_ABSOLUTE &&
-      type != SYMBOL_SMALL_GOT_28K)
-    {
-      rtx tmp = legitimize_pe_coff_symbol (imm, false);
-      if (tmp)
-        imm = tmp;
-    }
+  /* Disable while fixing */
+  // if (type != SYMBOL_SMALL_ABSOLUTE &&
+  //     type != SYMBOL_SMALL_GOT_28K)
+  //   {
+  //     rtx tmp = legitimize_pe_coff_symbol (imm, false);
+  //     if (tmp)
+  //       imm = tmp;
+  //   }
 
   switch (type)
     {
