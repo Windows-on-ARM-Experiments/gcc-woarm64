@@ -4682,16 +4682,16 @@ static void
 aarch64_load_symref_appropriately (rtx dest, rtx imm,
 				   enum aarch64_symbol_type type)
 {
-  /* FIXME: SYMBOL_SMALL_ABSOLUTE and SYMBOL_SMALL_GOT_28K 
-  fail with legitimize */
-  /* Disable while fixing */
-  // if (type != SYMBOL_SMALL_ABSOLUTE &&
-  //     type != SYMBOL_SMALL_GOT_28K)
-  //   {
-  //     rtx tmp = legitimize_pe_coff_symbol (imm, false);
-  //     if (tmp)
-  //       imm = tmp;
-  //   }
+  /* If legitimize returns a value 
+     copy it directly to the destination and return. */
+
+  rtx tmp = legitimize_pe_coff_symbol (imm, true);
+
+  if (tmp)
+    {
+       emit_insn (gen_rtx_SET (dest, tmp));
+       return;
+    }
 
   switch (type)
     {
