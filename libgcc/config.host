@@ -432,7 +432,7 @@ aarch64*-*-vxworks7*)
 	tmake_file="${tmake_file} ${cpu_type}/t-softfp t-softfp t-crtfm"
 	tmake_file="${tmake_file} t-dfprules"
 	;;
-aarch64-*-mingw*)
+aarch64-*-mingw* | aarch64*-*-cygwin*)
 	case ${target_thread_file} in
 	  win32)
 	    tmake_file="$tmake_file i386/t-gthr-win32"

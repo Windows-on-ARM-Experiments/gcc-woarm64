@@ -1204,7 +1204,7 @@ aarch64*-*-linux*)
 	done
 	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
 	;;
-aarch64*-*-mingw*)
+aarch64*-*-mingw* | aarch64*-*-cygwin*)
 # 	tm_file="${tm_file} dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h"
 # 	tm_file="${tm_file} aarch64/aarch64-elf.h aarch64/aarch64-errata.h aarch64/aarch64-linux.h"
 # 	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h"	
