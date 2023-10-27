@@ -30244,11 +30244,18 @@ $as_echo "#define HAVE_MINGW_SNPRINTF 1" >>confdefs.h
   fi
 
 
+$as_echo "ac_cv_func_strtof128: $ac_cv_func_strtof128" >&5
+$as_echo "ac_cv_func_strfromf128: $ac_cv_func_strfromf128" >&5
+$as_echo "gcc_cv_math_func_sinf128: $gcc_cv_math_func_sinf128" >&5
+$as_echo "gcc_cv_math_func_cacosf128: $gcc_cv_math_func_cacosf128" >&5
+
 have_iec_60559_libc_support=no
 if test "x$ac_cv_func_strtof128$ac_cv_func_strfromf128" = xyesyes \
    && test "x$gcc_cv_math_func_sinf128$gcc_cv_math_func_cacosf128" = xyesyes; then
   have_iec_60559_libc_support=yes
 fi
+
+$as_echo have_iec_60559_libc_support: $have_iec_60559_libc_support >&5
 
 # Check whether libquadmath should be used
 # Check whether --enable-libquadmath-support was given.
@@ -30306,22 +30313,14 @@ else
       return x * __builtin_huge_valf128 ();
     }
 
-    __float128 baz (__float128 x)
-    {
-      return x * __builtin_huge_valf128 ();
-    }
-
 int
 main ()
 {
 
     foo (1.2F128);
     bar (1.2F128);
-    baz (1.2F128);
     foo (1.2Q);
     bar (1.2Q);
-    baz (1.2Q);
-
   ;
   return 0;
 }
@@ -30359,21 +30358,14 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
       return x * __builtin_huge_valf128 ();
     }
 
-    __float128 baz (__float128 x)
-    {
-      return x * __builtin_huge_valf128 ();
-    }
-
 int
 main ()
 {
 
     foo (1.2F128);
     bar (1.2F128);
-    baz (1.2F128);
     foo (1.2Q);
     bar (1.2Q);
-    baz (1.2Q);
 
   ;
   return 0;

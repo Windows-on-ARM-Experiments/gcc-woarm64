@@ -289,18 +289,11 @@ AC_DEFUN([LIBGFOR_CHECK_FLOAT128], [
     {
       return x * __builtin_huge_valf128 ();
     }
-
-    __float128 baz (__float128 x)
-    {
-      return x * __builtin_huge_valf128 ();
-    }
   ],[
     foo (1.2F128);
     bar (1.2F128);
-    baz (1.2F128);
     foo (1.2Q);
     bar (1.2Q);
-    baz (1.2Q);
   ],[
     libgfor_cv_have_float128=yes
   ],[
