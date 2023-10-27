@@ -59,7 +59,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 /* If we're support quad-precision floating-point type, include the
    header to our support library.  */
 #if defined(HAVE_FLOAT128) && !defined(USE_IEC_60559)
-# include "quadmath_weak.h"
+# include "../libquadmath/quadmath_weak.h"
 #endif
 
 #ifdef __MINGW32__
