@@ -1125,8 +1125,9 @@ aarch64_pe_file_end (void)
 	    continue;
 	  name += 7;
 	  fprintf (asm_out_file, "\t.section\t.rdata$%s, \"dr\"\n"
-	  		   "\t.globl\t%s\n"
-			   "\t.linkonce\tdiscard\n", oname, oname);
+			"\t.globl\t%s\n"
+			"\t.align 3\n"
+			"\t.linkonce\tdiscard\n", oname, oname);
 	  fprintf (asm_out_file, "%s:\n\t.quad\t%s\n", oname, name);
 	}
     }
