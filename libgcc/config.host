@@ -456,13 +456,16 @@ aarch64*-*-vxworks7*)
 	tmake_file="${tmake_file} ${cpu_type}/t-sme ${cpu_type}/t-softfp t-softfp t-crtfm"
 	tmake_file="${tmake_file} t-dfprules"
 	;;
-aarch64-*-mingw*)
+aarch64*-*-mingw*)
 	case ${target_thread_file} in
 	  win32)
 	    tmake_thr_file="i386/t-gthr-win32"
 	    ;;
 	  posix)
 	    tmake_thr_file="i386/t-mingw-pthread"
+	    ;;
+	  mcf)
+	    tmake_thr_file="i386/t-mingw-mcfgthread"
 	    ;;
 	esac
 	# This has to match the logic for DWARF2_UNWIND_INFO in gcc/config/i386/cygming.h
@@ -477,8 +480,8 @@ aarch64-*-mingw*)
 	else
 	  tmake_dlldir_file="i386/t-dlldir-x"
 	fi
-	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_thr_file} ${tmake_dlldir_file}" # i386/t-chkstk
-        tmake_file="${tmake_file} i386/t-slibgcc-cygming i386/t-slibgcc-mingw i386/t-cygming i386/t-mingw32 t-dfprules"
+	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_thr_file} ${tmake_dlldir_file}"
+	tmake_file="${tmake_file} i386/t-slibgcc-cygming i386/t-slibgcc-mingw i386/t-cygming i386/t-mingw32 t-dfprules t-crtfm" # i386/t-chkstk
 	tmake_file="${tmake_file} ${cpu_type}/t-aarch64"
 	tmake_file="${tmake_file} ${cpu_type}/t-lse t-slibgcc-libgcc"
 	tmake_file="${tmake_file} ${cpu_type}/t-softfp t-softfp t-crtfm"
