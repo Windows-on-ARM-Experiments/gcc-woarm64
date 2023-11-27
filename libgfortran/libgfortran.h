@@ -67,14 +67,8 @@ extern float __strtof (const char *, char **);
 #define gfc_strtof __strtof
 extern double __strtod (const char *, char **);
 #define gfc_strtod __strtod
-
 extern long double __strtold (const char *, char **);
-#if defined(__arm__) || defined(__aarch64__) || defined(_ARM_) || defined(_ARM64_)
-#define gfc_strtold strtold
-#else
 #define gfc_strtold __strtold
-#endif
-
 #else
 #define gfc_strtof strtof
 #define gfc_strtod strtod
