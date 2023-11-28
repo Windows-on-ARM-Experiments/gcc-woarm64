@@ -55,7 +55,7 @@
     {							\
       fprintf (STREAM, "\t.comm\t");			\
       assemble_name (STREAM, NAME);			\
-      asm_fprintf (STREAM, ", %d\t%@ %d\n", 		\
+      asm_fprintf (STREAM, ", %d, %d\n", 		\
 		   (int)(ROUNDED), (int)(SIZE));	\
     }							\
   while (0)
