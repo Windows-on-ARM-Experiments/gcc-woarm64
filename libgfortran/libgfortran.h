@@ -62,7 +62,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 # include "quadmath_weak.h"
 #endif
 
-#ifdef __MINGW32__ && ! defined(__aarch64__)
+#ifdef __MINGW32__
 extern float __strtof (const char *, char **);
 #define gfc_strtof __strtof
 extern double __strtod (const char *, char **);
