@@ -127,6 +127,10 @@ case ${host} in
   i[34567]86-*-* \
   | x86_64-*-* )
     case ${target} in
+      aarch64*-*-*)
+	host_extra_gcc_objs="driver-aarch64.o"
+	host_xmake_file="${host_xmake_file} aarch64/x-aarch64"
+	;;
       i[34567]86-*-* \
       | x86_64-*-* )
 	host_extra_gcc_objs="driver-i386.o"
