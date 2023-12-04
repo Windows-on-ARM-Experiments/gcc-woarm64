@@ -42,6 +42,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 /* GCC supplies these headers.  */
 #include <stddef.h>
+#include <float.h>
 
 #ifdef inhibit_libc
 

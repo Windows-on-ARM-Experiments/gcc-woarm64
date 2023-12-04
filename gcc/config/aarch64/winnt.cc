@@ -36,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "options.h"
 #include "memmodel.h"
 #include "emit-rtl.h"
-#include "aarch64-protos.h"
 
 #define TARGET_SEH 1
 

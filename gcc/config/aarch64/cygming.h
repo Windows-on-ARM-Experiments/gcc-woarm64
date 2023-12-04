@@ -59,11 +59,40 @@ along with GCC; see the file COPYING3.  If not see
 // #define LOCAL_LABEL_PREFIX (TARGET_64BIT ? "." : "")
 
 #include <stdbool.h>
+#ifdef __MINGW32__
+#include <stdio.h>
+#endif
 
 #undef TARGET_SEH
 #define TARGET_SEH  1
 
 #define TARGET_ASM_NAMED_SECTION  aarch64_pe_asm_named_section
+
+/* SEH support */
+extern void aarch64_pe_seh_init (FILE *);
+extern void aarch64_pe_seh_end_prologue (FILE *);
+extern void aarch64_pe_seh_function_prologue (FILE *);
+extern void aarch64_pe_seh_cold_init (FILE *, const char *);
+extern void aarch64_pe_seh_unwind_emit (FILE *, rtx_insn *);
+extern void aarch64_pe_seh_emit_except_personality (rtx);
+extern void aarch64_pe_seh_init_sections (void);
+extern void aarch64_pe_seh_asm_final_postscan_insn (FILE *stream, rtx_insn *insn, rtx*, int);
+
+/* In aarch64_c */
+extern void aarch64_pe_asm_named_section (const char *, unsigned int, tree);
+extern bool aarch64_pe_valid_dllimport_attribute_p (const_tree);
+extern void aarch64_pe_maybe_record_exported_symbol (tree, const char *, int);
+
+/* In winnt */
+extern void aarch64_print_reg (rtx, int, FILE*);
+extern void aarch64_pe_end_function (FILE *f, const char *, tree);
+extern void aarch64_pe_end_cold_function (FILE *f, const char *, tree);
+extern void aarch64_pe_end_epilogue (FILE *file);
+extern void aarch64_pe_begin_epilogue (FILE *file);
+extern void aarch64_pe_file_end (void);
+extern void aarch64_pe_declare_function_type (FILE *file, const char *name, int pub);
+extern void aarch64_pe_record_external_function (tree decl, const char *name);
+extern void aarch64_pe_record_stub (const char *name);
 
 #define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P aarch64_pe_valid_dllimport_attribute_p
 
