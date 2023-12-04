@@ -441,6 +441,8 @@ aarch64_rewrite_mcpu (int argc, const char **argv)
   return aarch64_rewrite_selected_cpu (argv[argc - 1]);
 }
 
+#if TARGET_64BIT_MS_ABI
+
 /* Implement TARGET_EXCEPT_UNWIND_INFO.  */
 
 static enum unwind_info_type
@@ -464,6 +466,8 @@ aarch64_except_unwind_info (struct gcc_options *opts)
 
 #undef  TARGET_EXCEPT_UNWIND_INFO
 #define TARGET_EXCEPT_UNWIND_INFO  aarch64_except_unwind_info
+
+#endif // TARGET_64BIT_MS_ABI
 
 struct gcc_targetm_common targetm_common = TARGETM_COMMON_INITIALIZER;
 
