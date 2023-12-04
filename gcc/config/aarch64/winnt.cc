@@ -985,6 +985,7 @@ void
 aarch64_pe_override_options (void)
 {
   global_options.x_flag_shrink_wrap = false;
+  global_options.x_flag_stack_check = STATIC_BUILTIN_STACK_CHECK;
 }
 
 
