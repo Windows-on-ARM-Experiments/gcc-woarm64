@@ -410,8 +410,10 @@ enum class aarch64_feature : unsigned char {
 /* X18 reserved on windows for the TEB */
 #ifdef TARGET_64BIT_MS_ABI
 #define FIXED_X18 1
+#define CALL_USED_X18 0
 #else
 #define FIXED_X18 0
+#define CALL_USED_X18 1
 #endif 
 
 #define FIXED_REGISTERS					\
@@ -437,20 +439,20 @@ enum class aarch64_feature : unsigned char {
    true but not until function epilogues have been generated.  This ensures
    that X30 is available for use in leaf functions if needed.  */
 
-#define CALL_USED_REGISTERS				\
-  {							\
-    1, 1, 1, 1,   1, 1, 1, 1,	/* R0 - R7 */		\
-    1, 1, 1, 1,   1, 1, 1, 1,	/* R8 - R15 */		\
-    1, 1, FIXED_X18, 0,   0, 0, 0, 0,	/* R16 - R23 */	\
-    0, 0, 0, 0,   0, 1, 1, 1,	/* R24 - R30, SP */	\
-    1, 1, 1, 1,   1, 1, 1, 1,	/* V0 - V7 */		\
-    0, 0, 0, 0,   0, 0, 0, 0,	/* V8 - V15 */		\
-    1, 1, 1, 1,   1, 1, 1, 1,   /* V16 - V23 */         \
-    1, 1, 1, 1,   1, 1, 1, 1,   /* V24 - V31 */         \
-    1, 1, 1, 1,			/* SFP, AP, CC, VG */	\
-    1, 1, 1, 1,   1, 1, 1, 1,	/* P0 - P7 */		\
-    1, 1, 1, 1,   1, 1, 1, 1,	/* P8 - P15 */		\
-    1, 1			/* FFR and FFRT */	\
+#define CALL_USED_REGISTERS					\
+  {								\
+    1, 1, 1, 1,   1, 1, 1, 1,	/* R0 - R7 */			\
+    1, 1, 1, 1,   1, 1, 1, 1,	/* R8 - R15 */			\
+    1, 1, CALL_USED_X18, 0, 0,   0, 0, 0,	/* R16 - R23 */	\
+    0, 0, 0, 0,   0, 1, 1, 1,	/* R24 - R30, SP */		\
+    1, 1, 1, 1,   1, 1, 1, 1,	/* V0 - V7 */			\
+    0, 0, 0, 0,   0, 0, 0, 0,	/* V8 - V15 */			\
+    1, 1, 1, 1,   1, 1, 1, 1,   /* V16 - V23 */         	\
+    1, 1, 1, 1,   1, 1, 1, 1,   /* V24 - V31 */         	\
+    1, 1, 1, 1,			/* SFP, AP, CC, VG */		\
+    1, 1, 1, 1,   1, 1, 1, 1,	/* P0 - P7 */			\
+    1, 1, 1, 1,   1, 1, 1, 1,	/* P8 - P15 */			\
+    1, 1			/* FFR and FFRT */		\
   }
 
 #define REGISTER_NAMES						\
