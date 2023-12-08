@@ -58,7 +58,14 @@ extern void __gcc_deregister_frame (void);
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wprio-ctor-dtor"
-static void register_frame_ctor (void); // TODO __attribute__ ((constructor (0)));
+
+#ifdef __aarch64__
+/* constructor not yet enabled for aarch64 */
+static void register_frame_ctor (void);
+#else
+static void register_frame_ctor (void) __attribute__ ((constructor (0)));
+#endif
+
 #pragma GCC diagnostic pop
 
 static void
@@ -70,7 +77,14 @@ register_frame_ctor (void)
 #if !DEFAULT_USE_CXA_ATEXIT
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wprio-ctor-dtor"
-static void deregister_frame_dtor (void); // TODO  __attribute__ ((destructor (0)));
+
+#ifdef __aarch64__
+/* destructor not yet enabled for aarch64 */
+static void deregister_frame_dtor (void);
+#else
+static void deregister_frame_dtor (void) __attribute__ ((destructor (0)));
+#endif
+
 #pragma GCC diagnostic pop
 
 static void
