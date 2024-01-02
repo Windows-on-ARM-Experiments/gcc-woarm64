@@ -83,6 +83,23 @@ GNU_PROPERTY (FEATURE_1_AND, BTI_FLAG|PAC_FLAG)
 # endif
 #endif
 
+#ifdef __MINGW64__
+
+#define ENTRY_ALIGN(name, align) \
+  .global name;		\
+  .balign align;	\
+  name:			\
+  .cfi_startproc;	\
+  BTI_C
+
+#define END(name) \
+  .cfi_endproc;
+
+/* The hidden directive is invalid for coff targets. */
+#define HIDDEN(f)
+
+#else
+
 #define ENTRY_ALIGN(name, align) \
   .global name;		\
   .type name,%function;	\
@@ -91,8 +108,12 @@ GNU_PROPERTY (FEATURE_1_AND, BTI_FLAG|PAC_FLAG)
   .cfi_startproc;	\
   BTI_C
 
-#define ENTRY(name) ENTRY_ALIGN(name, 16)
-
 #define END(name) \
   .cfi_endproc;		\
   .size name, .-name
+
+#define HIDDEN(f) .hidden f
+
+#endif
+
+#define ENTRY(name) ENTRY_ALIGN(name, 16)
