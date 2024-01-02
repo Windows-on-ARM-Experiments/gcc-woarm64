@@ -1274,6 +1274,7 @@ aarch64*-*-mingw*)
 	extra_options="${extra_options} aarch64/cygming.opt aarch64/mingw.opt"
 	extra_objs="${extra_objs} winnt.o"
 	c_target_objs="${c_target_objs} winnt-c.o msformat-c.o"
+	cxx_target_objs="${cxx_target_objs} winnt-c.o winnt-cxx.o msformat-c.o"
 	d_target_objs="${d_target_objs} winnt-d.o"
 	tmake_file="${tmake_file} aarch64/t-cygming"
 	aarch64_multilibs="llp64"	
