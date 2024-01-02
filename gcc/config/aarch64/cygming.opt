@@ -22,6 +22,14 @@ mconsole
 Target RejectNegative
 Create console application.
 
+mdll
+Target RejectNegative
+Generate code for a DLL.
+
+mnop-fun-dllimport
+Target Var(TARGET_NOP_FUN_DLLIMPORT)
+Ignore dllimport for functions.
+
 mthreads
 Target RejectNegative
 Use Mingw-specific thread support.

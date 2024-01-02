@@ -17,6 +17,8 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
+#define IN_TARGET_CODE 1
+
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -105,6 +107,84 @@ aarch64_pe_declare_function_type (FILE *file, const char *name, int pub)
 	   (int) DT_FCN << N_BTSHFT);
 }
 
+/* Keep a list of external functions.  */
+
+struct GTY(()) extern_list
+{
+  struct extern_list *next;
+  tree decl;
+  const char *name;
+};
+
+static GTY(()) struct extern_list *extern_head;
+
+/* Assemble an external function reference.  We need to keep a list of
+   these, so that we can output the function types at the end of the
+   assembly.  We can't output the types now, because we might see a
+   definition of the function later on and emit debugging information
+   for it then.  */
+
+void
+aarch64_pe_record_external_function (tree decl, const char *name)
+{
+  struct extern_list *p;
+
+  p = ggc_alloc<extern_list> ();
+  p->next = extern_head;
+  p->decl = decl;
+  p->name = name;
+  extern_head = p;
+}
+
+/* Keep a list of exported symbols.  */
+
+struct GTY(()) export_list
+{
+  struct export_list *next;
+  const char *name;
+  int is_data;		/* used to type tag exported symbols.  */
+};
+
+/* Keep a list of stub symbols.  */
+
+struct GTY(()) stub_list
+{
+  struct stub_list *next;
+  const char *name;
+};
+
+static GTY(()) struct export_list *export_head;
+static GTY(()) struct stub_list *stub_head;
+
+/* Assemble an export symbol entry.  We need to keep a list of
+   these, so that we can output the export list at the end of the
+   assembly.  We used to output these export symbols in each function,
+   but that causes problems with GNU ld when the sections are
+   linkonce.  Beware, DECL may be NULL if compile_file() is emitting
+   the LTO marker.  */
+
+void
+aarch64_pe_maybe_record_exported_symbol (tree decl, const char *name, int is_data)
+{
+  rtx symbol;
+  struct export_list *p;
+
+  if (!decl)
+    return;
+
+  symbol = XEXP (DECL_RTL (decl), 0);
+  gcc_assert (GET_CODE (symbol) == SYMBOL_REF);
+  if (!SYMBOL_REF_DLLEXPORT_P (symbol))
+    return;
+
+  gcc_assert (TREE_PUBLIC (decl));
+
+  p = ggc_alloc<export_list> ();
+  p->next = export_head;
+  p->name = name;
+  p->is_data = is_data;
+  export_head = p;
+}
 
 /* Handle a "selectany" attribute;
    arguments as in struct attribute_spec.handler.  */
@@ -231,6 +311,108 @@ aarch64_pe_unique_section (tree decl, int reloc)
   set_decl_section_name (decl, string);
 }
 
+/* Return the type that we should use to determine if DECL is
+   imported or exported.  */
+
+static tree
+associated_type (tree decl)
+{
+  return (DECL_CONTEXT (decl) && TYPE_P (DECL_CONTEXT (decl))
+	  ?  DECL_CONTEXT (decl) : NULL_TREE);
+}
+
+/* Return true if DECL should be a dllexport'd object.  */
+
+static bool
+aarch64_pe_determine_dllexport_p (tree decl)
+{
+  if (TREE_CODE (decl) != VAR_DECL && TREE_CODE (decl) != FUNCTION_DECL)
+    return false;
+
+  /* Don't export local clones of dllexports.  */
+  if (!TREE_PUBLIC (decl))
+    return false;
+
+  if (TREE_CODE (decl) == FUNCTION_DECL
+      && DECL_DECLARED_INLINE_P (decl)
+      && !flag_keep_inline_dllexport)
+    return false;
+
+  if (lookup_attribute ("dllexport", DECL_ATTRIBUTES (decl)))
+    return true;
+
+  return false;
+}
+
+/* Return true if DECL should be a dllimport'd object.  */
+
+static bool
+aarch64_pe_determine_dllimport_p (tree decl)
+{
+  tree assoc;
+
+  if (TREE_CODE (decl) != VAR_DECL && TREE_CODE (decl) != FUNCTION_DECL)
+    return false;
+
+  if (DECL_DLLIMPORT_P (decl))
+    return true;
+
+  /* The DECL_DLLIMPORT_P flag was set for decls in the class definition
+     by  targetm.cxx.adjust_class_at_definition.  Check again to emit
+     error message if the class attribute has been overridden by an
+     out-of-class definition of static data.  */
+  assoc = associated_type (decl);
+  if (assoc && lookup_attribute ("dllimport", TYPE_ATTRIBUTES (assoc))
+      && TREE_CODE (decl) == VAR_DECL
+      && TREE_STATIC (decl) && TREE_PUBLIC (decl)
+      && !DECL_EXTERNAL (decl)
+      /* vtable's are linkonce constants, so defining a vtable is not
+	 an error as long as we don't try to import it too.  */
+      && !DECL_VIRTUAL_P (decl))
+	error ("definition of static data member %q+D of "
+	       "dllimport%'d class", decl);
+
+  return false;
+}
+
+void
+aarch64_pe_encode_section_info (tree decl, rtx rtl, int first)
+{
+  rtx symbol;
+  int flags;
+
+  /* Do this last, due to our frobbing of DECL_DLLIMPORT_P above.  */
+  default_encode_section_info (decl, rtl, first);
+
+  /* Careful not to prod global register variables.  */
+  if (!MEM_P (rtl))
+    return;
+
+  symbol = XEXP (rtl, 0);
+  gcc_assert (GET_CODE (symbol) == SYMBOL_REF);
+
+  switch (TREE_CODE (decl))
+    {
+    case FUNCTION_DECL:
+    case VAR_DECL:
+      break;
+
+    default:
+      return;
+    }
+
+  /* Mark the decl so we can tell from the rtl whether the object is
+     dllexport'd or dllimport'd.  tree.cc: merge_dllimport_decl_attributes
+     handles dllexport/dllimport override semantics.  */
+  flags = (SYMBOL_REF_FLAGS (symbol) &
+	   ~(SYMBOL_FLAG_DLLIMPORT | SYMBOL_FLAG_DLLEXPORT));
+  if (aarch64_pe_determine_dllexport_p (decl))
+    flags |= SYMBOL_FLAG_DLLEXPORT;
+  else if (aarch64_pe_determine_dllimport_p (decl))
+    flags |= SYMBOL_FLAG_DLLIMPORT;
+
+  SYMBOL_REF_FLAGS (symbol) = flags;
+}
 
 void 
 aarch64_pe_override_options (void)
@@ -244,3 +426,92 @@ aarch64_pe_override_options (void)
   /* alternative to calling __chkstk */
   global_options.x_flag_stack_check = STATIC_BUILTIN_STACK_CHECK;
 }
+
+
+void
+aarch64_pe_record_stub (const char *name)
+{
+  struct stub_list *p;
+
+  if (!name || *name == 0)
+    return;
+
+  p = stub_head;
+  while (p != NULL)
+    {
+      if (p->name[0] == *name
+          && !strcmp (p->name, name))
+	return;
+      p = p->next;
+    }
+
+  p = ggc_alloc<stub_list> ();
+  p->next = stub_head;
+  p->name = name;
+  stub_head = p;
+}
+
+/* This is called at the end of assembly.  For each external function
+   which has not been defined, we output a declaration now.  We also
+   output the .drectve section.  */
+
+void
+aarch64_pe_file_end (void)
+{
+  struct extern_list *p;
+
+  for (p = extern_head; p != NULL; p = p->next)
+    {
+      tree decl;
+
+      decl = p->decl;
+
+      /* Positively ensure only one declaration for any given symbol.  */
+      if (! TREE_ASM_WRITTEN (decl)
+	  && TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)))
+	{
+	  TREE_ASM_WRITTEN (decl) = 1;
+	  aarch64_pe_declare_function_type (asm_out_file, p->name,
+					 TREE_PUBLIC (decl));
+	}
+    }
+
+  if (export_head)
+    {
+      struct export_list *q;
+      drectve_section ();
+      for (q = export_head; q != NULL; q = q->next)
+	{
+	  fprintf (asm_out_file, "\t.ascii \" -export:\\\"%s\\\"%s\"\n",
+		   default_strip_name_encoding (q->name),
+		   (q->is_data ? ",data" : ""));
+	}
+    }
+
+  if (stub_head)
+    {
+      struct stub_list *q;
+
+      for (q = stub_head; q != NULL; q = q->next)
+	{
+	  const char *name = q->name;
+	  const char *oname;
+
+	  if (name[0] == '*')
+	    ++name;
+	  oname = name;
+	  if (name[0] == '.')
+	    ++name;
+	  if (!startswith (name, "refptr."))
+	    continue;
+	  name += 7;
+	  fprintf (asm_out_file, "\t.section\t.rdata$%s, \"dr\"\n"
+			"\t.globl\t%s\n"
+			"\t.align 3\n"
+			"\t.linkonce\tdiscard\n", oname, oname);
+	  fprintf (asm_out_file, "%s:\n\t.quad\t%s\n", oname, name);
+	}
+    }
+}
+
+#include "gt-winnt.h"
