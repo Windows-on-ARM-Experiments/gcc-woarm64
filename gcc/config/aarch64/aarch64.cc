@@ -24437,6 +24437,9 @@ aarch64_declare_function_name (FILE *stream, const char* name,
 #ifdef ASM_OUTPUT_TYPE_DIRECTIVE
   ASM_OUTPUT_TYPE_DIRECTIVE (stream, name, "function");
 #endif
+#ifdef SUBTARGET_ASM_UNWIND_INIT
+  SUBTARGET_ASM_UNWIND_INIT (stream);
+#endif
   ASM_OUTPUT_LABEL (stream, name);
 
   cfun->machine->label_is_assembled = true;
@@ -30517,6 +30520,16 @@ aarch64_run_selftests (void)
 } // namespace selftest
 
 #endif /* #if CHECKING_P */
+
+#ifdef TARGET_64BIT_MS_ABI
+
+void
+aarch64_print_reg (rtx x, int code, FILE *file)
+{
+  aarch64_print_operand (file, x, code);
+}
+
+#endif /* TARGET_64BIT_MS_ABI */
 
 #undef TARGET_STACK_PROTECT_GUARD
 #define TARGET_STACK_PROTECT_GUARD aarch64_stack_protect_guard
