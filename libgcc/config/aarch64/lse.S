@@ -60,8 +60,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 	.arch armv8-a
 #endif
 
+#ifndef __MINGW64__
 /* Declare the symbol gating the LSE implementations.  */
 	.hidden	__aarch64_have_lse_atomics
+#endif
 
 /* Turn size and memory model defines into mnemonic fragments.  */
 #if SIZE == 1
@@ -166,6 +168,22 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define tmp3	14
 #define tmp4	13
 
+#ifdef __MINGW64__
+
+.macro	STARTFN name
+	.text
+	.balign	16
+	.globl	\name
+	.cfi_startproc
+\name:
+.endm
+ 
+.macro	ENDFN name
+	.cfi_endproc
+.endm
+
+#else
+
 /* Start and end a function.  */
 .macro	STARTFN name
 	.text
@@ -181,6 +199,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 	.cfi_endproc
 	.size	\name, . - \name
 .endm
+
+#endif
 
 /* Branch to LABEL if LSE is disabled.  */
 .macro	JUMP_IF_NOT_LSE label
