@@ -1281,6 +1281,7 @@ aarch64*-*-mingw*)
 	target_has_targetdm="yes"
 	default_use_cxa_atexit=yes
 	need_64bit_isa=yes
+	tm_defines="${tm_defines} TARGET_64BIT_MS_ABI=1"
 	;;
 aarch64*-wrs-vxworks*)
         tm_file="${tm_file} elfos.h aarch64/aarch64-elf.h"
