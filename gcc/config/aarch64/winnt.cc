@@ -35,6 +35,76 @@ along with GCC; see the file COPYING3.  If not see
 #include "memmodel.h"
 #include "emit-rtl.h"
 
+void
+aarch64_pe_asm_named_section (const char *name, unsigned int flags,
+			      tree decl)
+{
+  char flagchars[8], *f = flagchars;
+
+#if defined (HAVE_GAS_SECTION_EXCLUDE) && HAVE_GAS_SECTION_EXCLUDE == 1
+  if ((flags & SECTION_EXCLUDE) != 0)
+    *f++ = 'e';
+#endif
+
+  if ((flags & (SECTION_CODE | SECTION_WRITE)) == 0)
+    /* readonly data */
+    {
+      *f++ ='d';  /* This is necessary for older versions of gas.  */
+      *f++ ='r';
+    }
+  else
+    {
+      if (flags & SECTION_CODE)
+	*f++ = 'x';
+      if (flags & SECTION_WRITE)
+	*f++ = 'w';
+//       if (flags & SECTION_PE_SHARED) // FIXME?
+//         *f++ = 's';
+#if !defined (HAVE_GAS_SECTION_EXCLUDE) || HAVE_GAS_SECTION_EXCLUDE == 0
+      /* If attribute "e" isn't supported we mark this section as
+	 never-load.  */
+      if ((flags & SECTION_EXCLUDE) != 0)
+	*f++ = 'n';
+#endif
+    }
+
+  *f = '\0';
+
+  fprintf (asm_out_file, "\t.section\t%s,\"%s\"\n", name, flagchars);
+
+  if (flags & SECTION_LINKONCE)
+    {
+      /* Functions may have been compiled at various levels of
+	 optimization so we can't use `same_size' here.
+	 Instead, have the linker pick one, without warning.
+	 If 'selectany' attribute has been specified,  MS compiler
+	 sets 'discard' characteristic, rather than telling linker
+	 to warn of size or content mismatch, so do the same.  */
+      bool discard = (flags & SECTION_CODE)
+		      || (TREE_CODE (decl) != IDENTIFIER_NODE
+			  && lookup_attribute ("selectany",
+					       DECL_ATTRIBUTES (decl)));
+      fprintf (asm_out_file, "\t.linkonce %s\n",
+	       (discard  ? "discard" : "same_size"));
+    }
+}
+
+/* Mark a function appropriately.  This should only be called for
+   functions for which we are not emitting COFF debugging information.
+   FILE is the assembler output file, NAME is the name of the
+   function, and PUB is nonzero if the function is globally
+   visible.  */
+
+void
+aarch64_pe_declare_function_type (FILE *file, const char *name, int pub)
+{
+  fprintf (file, "\t.def\t");
+  assemble_name (file, name);
+  fprintf (file, ";\t.scl\t%d;\t.type\t%d;\t.endef\n",
+	   pub ? (int) C_EXT : (int) C_STAT,
+	   (int) DT_FCN << N_BTSHFT);
+}
+
 
 /* Handle a "selectany" attribute;
    arguments as in struct attribute_spec.handler.  */
