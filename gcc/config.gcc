@@ -1265,6 +1265,7 @@ aarch64*-*-linux*)
 	;;
 aarch64*-*-mingw*)
 	tm_file="${tm_file} aarch64/aarch64-coff.h"
+	tm_file="${tm_file} aarch64/cygming.h"
 	tm_file="${tm_file} aarch64/mingw32.h"
 	tm_file="${tm_file} aarch64/mingw-stdint.h"
 	tmake_file="${tmake_file} aarch64/t-aarch64"
@@ -1284,7 +1285,7 @@ aarch64*-*-mingw*)
 	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
 	default_use_cxa_atexit=yes
 	need_64bit_isa=yes
-	tm_defines="${tm_defines} TARGET_64BIT_MS_ABI=1"
+	tm_defines="${tm_defines} TARGET_CYGWIN64=1 TARGET_64BIT_MS_ABI=1"
 	;;
 aarch64*-wrs-vxworks*)
         tm_file="${tm_file} elfos.h aarch64/aarch64-elf.h"
