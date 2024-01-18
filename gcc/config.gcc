@@ -1263,6 +1263,23 @@ aarch64*-*-linux*)
 	done
 	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
 	;;
+aarch64*-*-mingw*)
+	tmake_file="${tmake_file} aarch64/t-aarch64"
+	user_headers_inc_next_post="${user_headers_inc_next_post} float.h"
+	aarch64_multilibs="llp64"	
+	case ${enable_threads} in
+	  "" | yes | win32)
+	    thread_file='win32'
+	    ;;
+	  posix)
+	    thread_file='posix'
+	    ;;
+	esac
+	TM_MULTILIB_CONFIG="${TM_MULTILIB_CONFIG},llp64"
+	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
+	default_use_cxa_atexit=yes
+	need_64bit_isa=yes
+	;;
 aarch64*-wrs-vxworks*)
         tm_file="${tm_file} elfos.h aarch64/aarch64-elf.h"
         tm_file="${tm_file} vx-common.h vxworks.h aarch64/aarch64-vxworks.h"
