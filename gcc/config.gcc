@@ -1269,6 +1269,7 @@ aarch64*-*-mingw*)
 	tm_file="${tm_file} mingw/mingw-stdint.h"
 	tmake_file="${tmake_file} aarch64/t-aarch64"
 	user_headers_inc_next_post="${user_headers_inc_next_post} float.h"
+	target_gtfiles="$target_gtfiles \$(srcdir)/config/aarch64/winnt.cc"
 	extra_options="${extra_options} aarch64/mingw.opt"
 	aarch64_multilibs="llp64"	
 	case ${enable_threads} in
