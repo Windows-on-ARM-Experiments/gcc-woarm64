@@ -1264,6 +1264,7 @@ aarch64*-*-linux*)
 	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
 	;;
 aarch64*-*-mingw*)
+	tm_file="${tm_file} aarch64/aarch64-coff.h"
 	tmake_file="${tmake_file} aarch64/t-aarch64"
 	user_headers_inc_next_post="${user_headers_inc_next_post} float.h"
 	aarch64_multilibs="llp64"	
