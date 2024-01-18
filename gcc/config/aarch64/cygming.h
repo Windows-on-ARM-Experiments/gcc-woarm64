@@ -39,6 +39,10 @@ along with GCC; see the file COPYING3.  If not see
 #include <stdio.h>
 #endif
 
+#define TARGET_ASM_NAMED_SECTION  aarch64_pe_asm_named_section
+
+extern void aarch64_pe_asm_named_section (const char *, unsigned int, tree);
+extern void aarch64_pe_declare_function_type (FILE *file, const char *name, int pub);
 
 #define TARGET_OS_CPP_BUILTINS()                                 \
   do                                                            \
@@ -186,5 +190,9 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef MAX_OFILE_ALIGNMENT
 #define MAX_OFILE_ALIGNMENT (8192 * 8)
+
+/* Declare the type properly for any external libcall.  */
+#define ASM_OUTPUT_EXTERNAL_LIBCALL(FILE, FUN) \
+  aarch64_pe_declare_function_type (FILE, XSTR (FUN, 0), 1)
 
 #endif
