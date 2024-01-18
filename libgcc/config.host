@@ -456,6 +456,37 @@ aarch64*-*-vxworks7*)
 	tmake_file="${tmake_file} ${cpu_type}/t-softfp t-softfp t-crtfm"
 	tmake_file="${tmake_file} t-dfprules"
 	;;
+aarch64-*-mingw*)
+	case ${target_thread_file} in
+	  win32)
+	    tmake_thr_file="mingw/t-gthr-win32"
+	    ;;
+	  posix)
+	    tmake_thr_file="mingw/t-mingw-pthread"
+	    ;;
+	esac
+	# This has to match the logic for DWARF2_UNWIND_INFO in gcc/config/aarch64/cygming.h
+	if test x$ac_cv_sjlj_exceptions = xyes; then
+		tmake_eh_file="mingw/t-sjlj-eh"
+	else
+		tmake_eh_file="mingw/t-seh-eh"
+	fi
+	# Shared libgcc DLL install dir depends on cross/native build.
+	if test x${build} = x${host} ; then
+	  tmake_dlldir_file="mingw/t-dlldir"
+	else
+	  tmake_dlldir_file="mingw/t-dlldir-x"
+	fi
+	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_thr_file} ${tmake_dlldir_file}"
+        tmake_file="${tmake_file} mingw/t-slibgcc-cygming mingw/t-slibgcc-mingw mingw/t-cygming mingw/t-mingw32 t-dfprules"
+	tmake_file="${tmake_file} ${cpu_type}/t-aarch64"
+	tmake_file="${tmake_file} ${cpu_type}/t-lse t-slibgcc-libgcc"
+	tmake_file="${tmake_file} ${cpu_type}/t-softfp t-softfp t-crtfm"
+	extra_parts="$extra_parts crtbegin.o crtend.o crtfastmath.o"
+	if test x$enable_vtable_verify = xyes; then
+	  extra_parts="$extra_parts vtv_start.o vtv_end.o vtv_start_preinit.o vtv_end_preinit.o"
+	fi
+	;;
 alpha*-*-linux*)
 	tmake_file="${tmake_file} alpha/t-alpha alpha/t-ieee t-crtfm alpha/t-linux"
 	extra_parts="$extra_parts crtfastmath.o"
@@ -828,17 +859,17 @@ i[34567]86-*-cygwin*)
 	fi
 	# This has to match the logic for DWARF2_UNWIND_INFO in gcc/config/i386/cygming.h
 	if test x$ac_cv_sjlj_exceptions = xyes; then
-		tmake_eh_file="i386/t-sjlj-eh"
+		tmake_eh_file="mingw/t-sjlj-eh"
 	else
 		tmake_eh_file="i386/t-dw2-eh"
 	fi
 	# Shared libgcc DLL install dir depends on cross/native build.
 	if test x${build} = x${host} ; then
-		tmake_dlldir_file="i386/t-dlldir"
+		tmake_dlldir_file="mingw/t-dlldir"
 	else
-		tmake_dlldir_file="i386/t-dlldir-x"
+		tmake_dlldir_file="mingw/t-dlldir-x"
 	fi
-	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_dlldir_file} i386/t-slibgcc-cygming i386/t-cygming i386/t-cygwin t-crtfm i386/t-chkstk t-dfprules"
+	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_dlldir_file} mingw/t-slibgcc-cygming mingw/t-cygming i386/t-cygwin t-crtfm i386/t-chkstk t-dfprules"
 	;;
 x86_64-*-cygwin*)
 	extra_parts="crtbegin.o crtbeginS.o crtend.o crtfastmath.o"
@@ -847,21 +878,21 @@ x86_64-*-cygwin*)
 	fi
 	# This has to match the logic for DWARF2_UNWIND_INFO in gcc/config/i386/cygming.h
 	if test x$ac_cv_sjlj_exceptions = xyes; then
-		tmake_eh_file="i386/t-sjlj-eh"
+		tmake_eh_file="mingw/t-sjlj-eh"
 	elif test "${host_address}" = 32; then
 	        # biarch -m32 with --disable-sjlj-exceptions
 	     	tmake_eh_file="i386/t-dw2-eh"
 	else
-		tmake_eh_file="i386/t-seh-eh"
+		tmake_eh_file="mingw/t-seh-eh"
 	fi
 	# Shared libgcc DLL install dir depends on cross/native build.
 	if test x${build} = x${host} ; then
-		tmake_dlldir_file="i386/t-dlldir"
+		tmake_dlldir_file="mingw/t-dlldir"
 	else
-		tmake_dlldir_file="i386/t-dlldir-x"
+		tmake_dlldir_file="mingw/t-dlldir-x"
 	fi
 	# FIXME - dj - t-chkstk used to be in here, need a 64-bit version of that
-	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_dlldir_file} i386/t-slibgcc-cygming i386/t-cygming i386/t-cygwin t-crtfm t-dfprules i386/t-chkstk"
+	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_dlldir_file} mingw/t-slibgcc-cygming mingw/t-cygming i386/t-cygwin t-crtfm t-dfprules i386/t-chkstk"
 	;;
 i[34567]86-*-mingw*)
 	extra_parts="crtbegin.o crtend.o crtfastmath.o"
@@ -870,10 +901,10 @@ i[34567]86-*-mingw*)
 	fi
 	case ${target_thread_file} in
 	  win32)
-	    tmake_thr_file="i386/t-gthr-win32"
+	    tmake_thr_file="mingw/t-gthr-win32"
 	    ;;
 	  posix)
-	    tmake_thr_file="i386/t-mingw-pthread"
+	    tmake_thr_file="mingw/t-mingw-pthread"
 	    ;;
 	  mcf)
 	    tmake_thr_file="i386/t-mingw-mcfgthread"
@@ -881,26 +912,26 @@ i[34567]86-*-mingw*)
 	esac
 	# This has to match the logic for DWARF2_UNWIND_INFO in gcc/config/i386/cygming.h
 	if test x$ac_cv_sjlj_exceptions = xyes; then
-		tmake_eh_file="i386/t-sjlj-eh"
+		tmake_eh_file="mingw/t-sjlj-eh"
 	else
 		tmake_eh_file="i386/t-dw2-eh"
 		md_unwind_header=i386/w32-unwind.h
 	fi
 	# Shared libgcc DLL install dir depends on cross/native build.
 	if test x${build} = x${host} ; then
-		tmake_dlldir_file="i386/t-dlldir"
+		tmake_dlldir_file="mingw/t-dlldir"
 	else
-		tmake_dlldir_file="i386/t-dlldir-x"
+		tmake_dlldir_file="mingw/t-dlldir-x"
 	fi
-	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_thr_file} ${tmake_dlldir_file} i386/t-slibgcc-cygming i386/t-slibgcc-mingw i386/t-cygming i386/t-mingw32 t-crtfm i386/t-chkstk t-dfprules"
+	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_thr_file} ${tmake_dlldir_file} mingw/t-slibgcc-cygming mingw/t-slibgcc-mingw mingw/t-cygming mingw/t-mingw32 t-crtfm i386/t-chkstk t-dfprules"
 	;;
 x86_64-*-mingw*)
 	case ${target_thread_file} in
 	  win32)
-	    tmake_thr_file="i386/t-gthr-win32"
+	    tmake_thr_file="mingw/t-gthr-win32"
 	    ;;
 	  posix)
-	    tmake_thr_file="i386/t-mingw-pthread"
+	    tmake_thr_file="mingw/t-mingw-pthread"
 	    ;;
 	  mcf)
 	    tmake_thr_file="i386/t-mingw-mcfgthread"
@@ -908,21 +939,21 @@ x86_64-*-mingw*)
 	esac
 	# This has to match the logic for DWARF2_UNWIND_INFO in gcc/config/i386/cygming.h
 	if test x$ac_cv_sjlj_exceptions = xyes; then
-		tmake_eh_file="i386/t-sjlj-eh"
+		tmake_eh_file="mingw/t-sjlj-eh"
 	elif test "${host_address}" = 32; then
 	        # biarch -m32 with --disable-sjlj-exceptions
 	     	tmake_eh_file="i386/t-dw2-eh"
 		md_unwind_header=i386/w32-unwind.h
 	else
-		tmake_eh_file="i386/t-seh-eh"
+		tmake_eh_file="mingw/t-seh-eh"
 	fi
 	# Shared libgcc DLL install dir depends on cross/native build.
 	if test x${build} = x${host} ; then
-		tmake_dlldir_file="i386/t-dlldir"
+		tmake_dlldir_file="mingw/t-dlldir"
 	else
-		tmake_dlldir_file="i386/t-dlldir-x"
+		tmake_dlldir_file="mingw/t-dlldir-x"
 	fi
-	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_thr_file} ${tmake_dlldir_file} i386/t-slibgcc-cygming i386/t-slibgcc-mingw i386/t-cygming i386/t-mingw32 t-dfprules t-crtfm i386/t-chkstk"
+	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_thr_file} ${tmake_dlldir_file} mingw/t-slibgcc-cygming mingw/t-slibgcc-mingw mingw/t-cygming mingw/t-mingw32 t-dfprules t-crtfm i386/t-chkstk"
 	extra_parts="$extra_parts crtbegin.o crtend.o crtfastmath.o"
 	if test x$enable_vtable_verify = xyes; then
 		extra_parts="$extra_parts vtv_start.o vtv_end.o vtv_start_preinit.o vtv_end_preinit.o"
