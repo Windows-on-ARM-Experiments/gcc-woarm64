@@ -1265,6 +1265,7 @@ aarch64*-*-linux*)
 	;;
 aarch64*-*-mingw*)
 	tm_file="${tm_file} aarch64/aarch64-coff.h"
+	tm_file="${tm_file} mingw/mingw-stdint.h"
 	tmake_file="${tmake_file} aarch64/t-aarch64"
 	case ${enable_threads} in
 	  "" | yes | win32)
@@ -2246,7 +2247,7 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 		*)
 			;;
 	esac
-	tm_file="${tm_file} i386/mingw-stdint.h"
+	tm_file="${tm_file} mingw/mingw-stdint.h"
 	tmake_file="${tmake_file} t-winnt i386/t-cygming t-slibgcc"
         case ${target} in
                x86_64-w64-*)
