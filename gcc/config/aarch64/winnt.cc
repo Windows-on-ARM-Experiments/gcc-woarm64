@@ -18,7 +18,138 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
+#include "system.h"
+#include "coretypes.h"
+#include "target.h"
+#include "function.h"
+#include "basic-block.h"
+#include "rtl.h"
+#include "tree.h"
+#include "output.h"
+#include "varasm.h"
+#include "gsyms.h"
+#include "stringpool.h"
+#include "attribs.h"
+#include "errors.h"
 #include "options.h"
+#include "memmodel.h"
+#include "emit-rtl.h"
+
+/* Select a set of attributes for section NAME based on the properties
+   of DECL and whether or not RELOC indicates that DECL's initializer
+   might contain runtime relocations.
+
+   We make the section read-only and executable for a function decl,
+   read-only for a const data decl, and writable for a non-const data decl.
+
+   If the section has already been defined, to not allow it to have
+   different attributes, as (1) this is ambiguous since we're not seeing
+   all the declarations up front and (2) some assemblers (e.g. SVR4)
+   do not recognize section redefinitions.  */
+/* ??? This differs from the "standard" PE implementation in that we
+   handle the SHARED variable attribute.  Should this be done for all
+   PE targets?  */
+
+#define SECTION_PE_SHARED	SECTION_MACH_DEP
+
+unsigned int
+aarch64_pe_section_type_flags (tree decl, const char *, int reloc)
+{
+  unsigned int flags;
+
+  /* Ignore RELOC, if we are allowed to put relocated
+     const data into read-only section.  */
+  if (!flag_writable_rel_rdata)
+    reloc = 0;
+
+  if (decl && TREE_CODE (decl) == FUNCTION_DECL)
+    flags = SECTION_CODE;
+  else if (decl && decl_readonly_section (decl, reloc))
+    flags = 0;
+  else
+    {
+      flags = SECTION_WRITE;
+
+      if (decl && TREE_CODE (decl) == VAR_DECL
+	  && lookup_attribute ("shared", DECL_ATTRIBUTES (decl)))
+	flags |= SECTION_PE_SHARED;
+    }
+
+  if (decl && DECL_P (decl) && DECL_ONE_ONLY (decl))
+    flags |= SECTION_LINKONCE;
+
+  return flags;
+}
+
+/* Also strip the fastcall prefix and stdcall suffix.  */
+
+const char *
+aarch64_pe_strip_name_encoding_full (const char *str)
+{
+  const char *p;
+  const char *name = default_strip_name_encoding (str);
+
+  /* Strip leading '@' on fastcall symbols.  */
+  if (*name == '@')
+    name++;
+
+  /* Strip trailing "@n".  */
+  p = strchr (name, '@');
+  if (p)
+    return ggc_alloc_string (name, p - name);
+
+  return name;
+}
+
+void
+aarch64_pe_unique_section (tree decl, int reloc)
+{
+  int len;
+  const char *name, *prefix;
+  char *string;
+
+  /* Ignore RELOC, if we are allowed to put relocated
+     const data into read-only section.  */
+  if (!flag_writable_rel_rdata)
+    reloc = 0;
+  name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
+  name = aarch64_pe_strip_name_encoding_full (name);
+
+  /* The object is put in, for example, section .text$foo.
+     The linker will then ultimately place them in .text
+     (everything from the $ on is stripped). Don't put
+     read-only data in .rdata section to avoid a PE linker
+     bug when .rdata$* grouped sections are used in code
+     without a .rdata section.  */
+  if (TREE_CODE (decl) == FUNCTION_DECL)
+    prefix = ".text$";
+  else if (decl_readonly_section (decl, reloc))
+    prefix = ".rdata$";
+  else
+    prefix = ".data$";
+  len = strlen (name) + strlen (prefix);
+  string = XALLOCAVEC (char, len + 1);
+  sprintf (string, "%s%s", prefix, name);
+
+  set_decl_section_name (decl, string);
+}
+
+void
+aarch64_pe_encode_section_info (tree decl, rtx rtl, int first)
+{
+  rtx symbol;
+  int flags;
+
+  /* Do this last, due to our frobbing of DECL_DLLIMPORT_P above.  */
+  default_encode_section_info (decl, rtl, first);
+
+  /* Careful not to prod global register variables.  */
+  if (!MEM_P (rtl))
+    return;
+
+  symbol = XEXP (rtl, 0);
+  gcc_assert (GET_CODE (symbol) == SYMBOL_REF);
+}
 
 void 
 aarch64_pe_override_options (void)
