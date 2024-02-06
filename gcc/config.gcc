@@ -1265,6 +1265,7 @@ aarch64*-*-linux*)
 	;;
 aarch64*-*-mingw*)
 	tm_file="${tm_file} aarch64/aarch64-coff.h"
+	tm_file="${tm_file} aarch64/cygming.h"
 	tm_file="${tm_file} mingw/mingw32.h"
 	tm_file="${tm_file} mingw/mingw-stdint.h"
 	tmake_file="${tmake_file} aarch64/t-aarch64"
