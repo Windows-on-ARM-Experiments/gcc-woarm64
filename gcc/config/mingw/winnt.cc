@@ -232,6 +232,8 @@ i386_pe_maybe_mangle_decl_assembler_name (tree decl, tree id)
 {
   tree new_id = NULL_TREE;
 
+#if !defined(TARGET_ARM64_MS_ABI)
+
   if (TREE_CODE (decl) == FUNCTION_DECL)
     { 
       unsigned int ccvt = ix86_get_callcvt (TREE_TYPE (decl));
@@ -246,6 +248,8 @@ i386_pe_maybe_mangle_decl_assembler_name (tree decl, tree id)
       else if ((ccvt & IX86_CALLCVT_FASTCALL) != 0)
 	new_id = gen_stdcall_or_fastcall_suffix (decl, id, true);
     }
+
+#endif
 
   return new_id;
 }
