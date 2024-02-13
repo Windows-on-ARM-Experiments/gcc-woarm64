@@ -1267,7 +1267,7 @@ aarch64*-*-linux*)
 aarch64*-*-mingw*)
 # 	tm_file="${tm_file} dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h"
 # 	tm_file="${tm_file} aarch64/aarch64-elf.h aarch64/aarch64-errata.h aarch64/aarch64-linux.h"
-# 	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h"	
+# 	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h"
 	tm_file="${tm_file} aarch64/aarch64-coff.h"
 	tm_file="${tm_file} aarch64/cygming.h"
 	tm_file="${tm_file} aarch64/mingw32.h"
@@ -1282,7 +1282,7 @@ aarch64*-*-mingw*)
 	cxx_target_objs="${cxx_target_objs} winnt-c.o winnt-cxx.o msformat-c.o"
 	d_target_objs="${d_target_objs} winnt-d.o"
 	tmake_file="${tmake_file} aarch64/t-cygming"
-	aarch64_multilibs="llp64"	
+	aarch64_multilibs="llp64"
 	case ${enable_threads} in
 	  "" | yes | win32)
 	    thread_file='win32'
@@ -1291,13 +1291,12 @@ aarch64*-*-mingw*)
 	    thread_file='posix'
 	    ;;
 	esac
+
+	tmake_file="${tmake_file} aarch64/t-aarch64"
+	aarch64_multilibs="llp64"
 	TM_MULTILIB_CONFIG="${TM_MULTILIB_CONFIG},llp64"
 	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
-	target_has_targetcm="yes"
-	target_has_targetdm="yes"
-	default_use_cxa_atexit=yes
-	need_64bit_isa=yes
-	tm_defines="${tm_defines} TARGET_CYGWIN64=1 TARGET_64BIT_MS_ABI=1"
+	tm_defines="${tm_defines} TARGET_ARM64_MS_ABI=1"
 	;;
 aarch64*-wrs-vxworks*)
         tm_file="${tm_file} elfos.h aarch64/aarch64-elf.h"
