@@ -537,7 +537,7 @@ constexpr auto AARCH64_FL_DEFAULT_ISA_MODE = AARCH64_FL_SM_OFF;
    instead.  */
 
 /* X18 reserved on windows for the TEB */
-#ifdef TARGET_64BIT_MS_ABI
+#ifdef TARGET_ARM64_MS_ABI
 #define FIXED_X18 1
 #define CALL_USED_X18 0
 #else
@@ -651,7 +651,7 @@ constexpr auto AARCH64_FL_DEFAULT_ISA_MODE = AARCH64_FL_SM_OFF;
    uses alloca.  */
 #define EXIT_IGNORE_STACK	(cfun->calls_alloca)
 
-#ifdef TARGET_64BIT_MS_ABI
+#ifdef TARGET_ARM64_MS_ABI
 #define STATIC_CHAIN_REGNUM		R17_REGNUM
 #else
 #define STATIC_CHAIN_REGNUM		R18_REGNUM
