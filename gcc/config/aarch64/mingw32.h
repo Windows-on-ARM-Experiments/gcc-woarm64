@@ -119,11 +119,16 @@ along with GCC; see the file COPYING3.  If not see
 #else
 #define SHARED_LIBGCC_SPEC " -lgcc "
 #endif
+#if TARGET_USING_MCFGTHREAD
+#define MCFGTHREAD_SPEC  " -lmcfgthread -lkernel32 -lntdll "
+#else
+#define MCFGTHREAD_SPEC  ""
+#endif
 #undef REAL_LIBGCC_SPEC
 #define REAL_LIBGCC_SPEC \
   "%{mthreads:-lmingwthrd} -lmingw32 \
    " SHARED_LIBGCC_SPEC " \
-   -lmoldname -lmingwex -lmsvcrt -lkernel32"
+   %{!mcrtdll=crtdll*:-lmoldname} -lmingwex %{!mcrtdll=*:-lmsvcrt} -lkernel32"
 
 #undef STARTFILE_SPEC
 #define STARTFILE_SPEC "%{shared|mdll:dllcrt2%O%s} \

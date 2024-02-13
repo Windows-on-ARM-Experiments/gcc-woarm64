@@ -262,6 +262,9 @@ extern void aarch64_pe_record_stub (const char *name);
 #undef TARGET_PECOFF
 #define TARGET_PECOFF 1
 
+/* 64-bit code uses SEH unless you request SJLJ. 
+   This must be kept synchronised with the logic for selecting
+   the tmake_eh_file fragment in libgcc/config.host. */
 #undef DWARF2_UNWIND_INFO
 #define DWARF2_UNWIND_INFO 0
 
