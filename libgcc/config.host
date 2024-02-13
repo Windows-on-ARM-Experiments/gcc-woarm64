@@ -397,10 +397,10 @@ case ${host} in
   *-*-solaris2*)
   enable_execute_stack=enable-execute-stack-mprotect.c
   ;;
-i[34567]86-*-mingw* | x86_64-*-mingw*)
+*-*-mingw*)
   enable_execute_stack=config/i386/enable-execute-stack-mingw32.c
   ;;
-i[34567]86-*-cygwin* | x86_64-*-cygwin*)
+*-*-cygwin*)
   enable_execute_stack=config/i386/enable-execute-stack-mingw32.c
   ;;
 *)
