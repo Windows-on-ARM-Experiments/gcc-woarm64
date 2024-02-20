@@ -1492,7 +1492,7 @@ See RS/6000 and PowerPC Options.
 -mindirect-branch-cs-prefix -mneeded -mno-direct-extern-access
 -munroll-only-small-loops -mlam=@var{choice}}
 
-@emph{x86 Windows Options}
+@emph{Cygwin and MinGW Options}
 @gccoptlist{-mconsole  -mcrtdll=@var{library}  -mdll
 -mnop-fun-dllimport  -mthread
 -municode  -mwin32  -mwindows  -fno-set-stack-executable}
@@ -20970,6 +20970,7 @@ platform.
 * C6X Options::
 * CRIS Options::
 * C-SKY Options::
+* Cygwin and MinGW Options::
 * Darwin Options::
 * DEC Alpha Options::
 * eBPF Options::
@@ -21014,7 +21015,6 @@ platform.
 * VMS Options::
 * VxWorks Options::
 * x86 Options::
-* x86 Windows Options::
 * Xstormy16 Options::
 * Xtensa Options::
 * zSeries Options::
@@ -36094,10 +36094,10 @@ positions 62:48 can be used for metadata; With @samp{u57}, pointer bits in
 positions 62:57 can be used for metadata.
 @end table
 
-@node x86 Windows Options
-@subsection x86 Windows Options
-@cindex x86 Windows Options
-@cindex Windows Options for x86
+@node Cygwin and MinGW Options
+@subsection Cygwin and MinGW Options
+@cindex Cygwin and MinGW Options
+@cindex Options for Cygwin and MinGW
 
 These additional options are available for Microsoft Windows targets:
 
