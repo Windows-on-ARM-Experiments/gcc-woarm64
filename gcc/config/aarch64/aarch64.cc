@@ -28593,10 +28593,12 @@ aarch64_scalar_mode_supported_p (scalar_mode mode)
 {
   if (DECIMAL_FLOAT_MODE_P (mode))
     return default_decimal_float_supported_p ();
-
-  return ((mode == HFmode || mode == BFmode)
-	  ? true
-	  : default_scalar_mode_supported_p (mode));
+  else if (mode == TFmode)
+    return true;
+  else if (mode == HFmode || mode == BFmode)
+    return true;
+  else
+    return default_scalar_mode_supported_p (mode);
 }
 
 /* Set the value of FLT_EVAL_METHOD.
