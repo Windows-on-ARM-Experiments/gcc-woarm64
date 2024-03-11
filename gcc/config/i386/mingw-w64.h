@@ -91,8 +91,13 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef SUB_LINK_SPEC
 #undef SUB_LINK_ENTRY
+#if defined(TARGET_ARM64_MS_ABI)
+#define SUB_LINK_SPEC "%{" SPEC_64 ":-m aarch64pe}"
+#define SUB_LINK_ENTRY "%{" SPEC_64 ":" SUB_LINK_ENTRY64 "}"
+#else
 #define SUB_LINK_SPEC "%{" SPEC_64 ":-m i386pep} %{" SPEC_32 ":-m i386pe}"
 #define SUB_LINK_ENTRY "%{" SPEC_64 ":" SUB_LINK_ENTRY64 "} %{" SPEC_32 ":" SUB_LINK_ENTRY32 "}"
+#endif
 
 #undef MULTILIB_DEFAULTS
 #if TARGET_64BIT_DEFAULT
