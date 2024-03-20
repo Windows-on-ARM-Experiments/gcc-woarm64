@@ -408,7 +408,7 @@ ix86_expand_move (machine_mode mode, rtx operands[])
 				 : UNSPEC_GOT));
 	  op1 = gen_rtx_CONST (Pmode, op1);
 	  op1 = gen_const_mem (Pmode, op1);
-	  set_mem_alias_set (op1, ix86_GOT_alias_set ());
+	  set_mem_alias_set (op1, mingw_GOT_alias_set ());
 	}
       else
 	{

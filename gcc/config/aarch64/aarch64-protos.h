@@ -1114,6 +1114,9 @@ extern void mingw_pe_maybe_record_exported_symbol (tree, const char *, int);
 extern unsigned int mingw_pe_section_type_flags (tree, const char *, int);
 extern void mingw_pe_unique_section (tree, int);
 extern void mingw_pe_encode_section_info (tree, rtx, int);
+extern tree mingw_handle_selectany_attribute (tree *, tree, tree, int, bool *);
+
+extern rtx legitimize_pe_coff_symbol (rtx addr, bool inreg);
 
 bool aarch64_optimize_mode_switching (aarch64_mode_entity);
 void aarch64_restore_za (rtx);
