@@ -71,7 +71,7 @@ ix86_handle_shared_attribute (tree *node, tree name, tree, int,
 /* Handle a "selectany" attribute;
    arguments as in struct attribute_spec.handler.  */
 tree
-mingw_handle_selectany_attribute (tree *node, tree name, tree, int,
+ix86_handle_selectany_attribute (tree *node, tree name, tree, int,
 				 bool *no_add_attrs)
 {
   tree decl = *node;
@@ -162,7 +162,7 @@ i386_pe_determine_dllimport_p (tree decl)
 /* Handle the -mno-fun-dllimport target switch.  */
 
 bool
-mingw_pe_valid_dllimport_attribute_p (const_tree decl)
+i386_pe_valid_dllimport_attribute_p (const_tree decl)
 {
    if (TARGET_NOP_FUN_DLLIMPORT && TREE_CODE (decl) == FUNCTION_DECL)
      return false;
@@ -224,8 +224,6 @@ gen_stdcall_or_fastcall_suffix (tree decl, tree id, bool fastcall)
   return get_identifier (new_str);
 }
 
-#if !defined (TARGET_AARCH64_MS_ABI)
-
 /* Maybe decorate and get a new identifier for the DECL of a stdcall or
    fastcall function. The original identifier is supplied in ID. */
 
@@ -252,8 +250,6 @@ i386_pe_maybe_mangle_decl_assembler_name (tree decl, tree id)
   return new_id;
 }
 
-#endif
-
 /* Emit an assembler directive to set symbol for DECL visibility to
    the visibility type VIS, which must not be VISIBILITY_DEFAULT.
    As for PE there is no hidden support in gas, we just warn for
@@ -270,8 +266,6 @@ i386_pe_assemble_visibility (tree decl, int)
 			      "in this configuration; ignored");
 }
 
-#if !defined (TARGET_AARCH64_MS_ABI)
-
 /* This is used as a target hook to modify the DECL_ASSEMBLER_NAME
    in the language-independent default hook
    langhooks,c:lhd_set_decl_assembler_name ()
@@ -283,8 +277,6 @@ i386_pe_mangle_decl_assembler_name (tree decl, tree id)
 
   return (new_id ? new_id : id);
 }
-
-#endif
 
 /* This hook behaves the same as varasm.cc/assemble_name(), but
    generates the name into memory rather than outputting it to
@@ -301,7 +293,7 @@ i386_pe_mangle_assembler_name (const char *name)
 }
 
 void
-mingw_pe_encode_section_info (tree decl, rtx rtl, int first)
+i386_pe_encode_section_info (tree decl, rtx rtl, int first)
 {
   rtx symbol;
   int flags;
@@ -392,7 +384,7 @@ i386_pe_strip_name_encoding_full (const char *str)
 }
 
 void
-mingw_pe_unique_section (tree decl, int reloc)
+i386_pe_unique_section (tree decl, int reloc)
 {
   int len;
   const char *name, *prefix;
@@ -450,7 +442,7 @@ i386_pe_reloc_rw_mask (void)
 #define SECTION_PE_SHARED	SECTION_MACH_DEP
 
 unsigned int
-mingw_pe_section_type_flags (tree decl, const char *, int reloc)
+i386_pe_section_type_flags (tree decl, const char *, int reloc)
 {
   unsigned int flags;
 
@@ -479,7 +471,7 @@ mingw_pe_section_type_flags (tree decl, const char *, int reloc)
 }
 
 void
-mingw_pe_asm_named_section (const char *name, unsigned int flags,
+i386_pe_asm_named_section (const char *name, unsigned int flags, 
 			   tree decl)
 {
   char flagchars[8], *f = flagchars;
@@ -556,7 +548,7 @@ i386_pe_asm_output_aligned_decl_common (FILE *stream, tree decl,
   rounded = (rounded / (BIGGEST_ALIGNMENT / BITS_PER_UNIT)
 	     * (BIGGEST_ALIGNMENT / BITS_PER_UNIT));
   
-  mingw_pe_maybe_record_exported_symbol (decl, name, 1);
+  i386_pe_maybe_record_exported_symbol (decl, name, 1);
 
   fprintf (stream, "\t.comm\t");
   assemble_name (stream, name);
@@ -582,7 +574,7 @@ i386_pe_asm_output_aligned_decl_common (FILE *stream, tree decl,
    visible.  */
 
 void
-mingw_pe_declare_function_type (FILE *file, const char *name, int pub)
+i386_pe_declare_function_type (FILE *file, const char *name, int pub)
 {
   fprintf (file, "\t.def\t");
   assemble_name (file, name);
@@ -649,7 +641,7 @@ static GTY(()) struct stub_list *stub_head;
    the LTO marker.  */
 
 void
-mingw_pe_maybe_record_exported_symbol (tree decl, const char *name, int is_data)
+i386_pe_maybe_record_exported_symbol (tree decl, const char *name, int is_data)
 {
   rtx symbol;
   struct export_list *p;
@@ -672,7 +664,7 @@ mingw_pe_maybe_record_exported_symbol (tree decl, const char *name, int is_data)
 }
 
 void
-mingw_pe_record_stub (const char *name)
+i386_pe_record_stub (const char *name)
 {
   struct stub_list *p;
 
@@ -749,7 +741,7 @@ i386_find_on_wrapper_list (const char *target)
    output the .drectve section.  */
 
 void
-mingw_pe_file_end (void)
+i386_pe_file_end (void)
 {
   struct extern_list *p;
 
@@ -769,11 +761,11 @@ mingw_pe_file_end (void)
 	     the real function so that an (unused) import is created.  */
 	  const char *realsym = i386_find_on_wrapper_list (p->name);
 	  if (realsym)
-	    mingw_pe_declare_function_type (asm_out_file,
+	    i386_pe_declare_function_type (asm_out_file,
 		concat ("__real_", realsym, NULL), TREE_PUBLIC (decl));
 #endif /* CXX_WRAP_SPEC_LIST */
 	  TREE_ASM_WRITTEN (decl) = 1;
-	  mingw_pe_declare_function_type (asm_out_file, p->name,
+	  i386_pe_declare_function_type (asm_out_file, p->name,
 					 TREE_PUBLIC (decl));
 	}
     }
@@ -1362,8 +1354,8 @@ i386_pe_seh_init_sections (void)
 void
 i386_pe_start_function (FILE *f, const char *name, tree decl)
 {
-  mingw_pe_maybe_record_exported_symbol (decl, name, 0);
-  mingw_pe_declare_function_type (f, name, TREE_PUBLIC (decl));
+  i386_pe_maybe_record_exported_symbol (decl, name, 0);
+  i386_pe_declare_function_type (f, name, TREE_PUBLIC (decl));
   /* In case section was altered by debugging output.  */
   if (decl != NULL_TREE)
     switch_to_section (function_section (decl));

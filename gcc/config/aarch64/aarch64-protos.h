@@ -1110,15 +1110,12 @@ extern void aarch64_output_patchable_area (unsigned int, bool);
 
 extern void aarch64_adjust_reg_alloc_order ();
 
-extern void mingw_pe_maybe_record_exported_symbol (tree, const char *, int);
-extern unsigned int mingw_pe_section_type_flags (tree, const char *, int);
-extern void mingw_pe_unique_section (tree, int);
-extern void mingw_pe_encode_section_info (tree, rtx, int);
-extern tree mingw_handle_selectany_attribute (tree *, tree, tree, int, bool *);
-
-extern rtx legitimize_pe_coff_symbol (rtx addr, bool inreg);
-
 bool aarch64_optimize_mode_switching (aarch64_mode_entity);
 void aarch64_restore_za (rtx);
+
+extern tree aarch64_handle_selectany_attribute (tree *, tree, tree, int, bool *);
+extern unsigned int aarch64_pe_section_type_flags (tree, const char *, int);
+extern void aarch64_pe_unique_section (tree, int);
+extern void aarch64_pe_encode_section_info (tree, rtx, int);
 
 #endif /* GCC_AARCH64_PROTOS_H */

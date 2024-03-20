@@ -1,5 +1,5 @@
 /* Machine description for AArch64 architecture.
-   Copyright (C) 2024 Free Software Foundation, Inc.
+   Copyright (C) 2022 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -23,37 +23,41 @@
 #include "aarch64.h"
 
 #ifndef LOCAL_LABEL_PREFIX
-# define LOCAL_LABEL_PREFIX 	""
+#define LOCAL_LABEL_PREFIX 	""
 #endif
 
 /* Using long long breaks -ansi and -std=c90, so these will need to be
    made conditional for an LLP64 ABI.  */
 #undef SIZE_TYPE
-#define SIZE_TYPE	"long long unsigned int"
-
 #undef PTRDIFF_TYPE
+#define SIZE_TYPE	"long long unsigned int"
 #define PTRDIFF_TYPE	"long long int"
 
+#define TARGET_64BIT 1
 #undef LONG_TYPE_SIZE
 #define LONG_TYPE_SIZE 32
 
+#define TARGET_SEH 1
+
 #ifndef ASM_GENERATE_INTERNAL_LABEL
-# define ASM_GENERATE_INTERNAL_LABEL(STRING, PREFIX, NUM)  \
+#define ASM_GENERATE_INTERNAL_LABEL(STRING, PREFIX, NUM)  \
   sprintf (STRING, "*%s%s%u", LOCAL_LABEL_PREFIX, PREFIX, (unsigned int)(NUM))
 #endif
 
 #define ASM_OUTPUT_ALIGN(STREAM, POWER)		\
-  fprintf (STREAM, "\t.align\t%d\n", (int)POWER)
+  fprintf(STREAM, "\t.align\t%d\n", (int)POWER)
 
 /* Output a common block.  */
 #ifndef ASM_OUTPUT_COMMON
-# define ASM_OUTPUT_COMMON(STREAM, NAME, SIZE, ROUNDED)	\
+#define ASM_OUTPUT_COMMON(STREAM, NAME, SIZE, ROUNDED)	\
+  do							\
     {							\
       fprintf (STREAM, "\t.comm\t");			\
       assemble_name (STREAM, NAME);			\
       asm_fprintf (STREAM, ", %d, %d\n", 		\
-      (int)(ROUNDED), (int)(SIZE));	\
-    }
+		   (int)(ROUNDED), (int)(SIZE));	\
+    }							\
+  while (0)
 #endif
 
 /* Output a local common block.  /bin/as can't do this, so hack a
@@ -61,20 +65,25 @@
    which is guaranteed NOT to work since it doesn't define STATIC
    COMMON space but merely STATIC BSS space.  */
 #ifndef ASM_OUTPUT_ALIGNED_LOCAL
-# define ASM_OUTPUT_ALIGNED_LOCAL(STREAM, NAME, SIZE, ALIGN)		\
+#define ASM_OUTPUT_ALIGNED_LOCAL(STREAM, NAME, SIZE, ALIGN)		\
+  do									\
     {									\
       switch_to_section (bss_section);					\
       ASM_OUTPUT_ALIGN (STREAM, floor_log2 (ALIGN / BITS_PER_UNIT));	\
       ASM_OUTPUT_LABEL (STREAM, NAME);					\
       fprintf (STREAM, "\t.space\t%d\n", (int)(SIZE));			\
-    }
+    }									\
+  while (0)
 #endif
 
 #define ASM_OUTPUT_SKIP(STREAM, NBYTES) 	\
   fprintf (STREAM, "\t.space\t%d  // skip\n", (int) (NBYTES))
 
-#define ASM_OUTPUT_TYPE_DIRECTIVE(STREAM, NAME, TYPE)
-#define ASM_DECLARE_FUNCTION_SIZE(FILE, FNAME, DECL)
+#undef TARGET_ASM_CONSTRUCTOR
+#define TARGET_ASM_CONSTRUCTOR aarch64_elf_asm_constructor
+
+#undef TARGET_ASM_DESTRUCTOR
+#define TARGET_ASM_DESTRUCTOR aarch64_elf_asm_destructor
 
 #define TEXT_SECTION_ASM_OP	"\t.text"
 #define DATA_SECTION_ASM_OP	"\t.data"
@@ -87,5 +96,15 @@
 
 #undef SUPPORTS_INIT_PRIORITY
 #define SUPPORTS_INIT_PRIORITY 0
+
+#undef STACK_CHECK_STATIC_BUILTIN
+#define STACK_CHECK_STATIC_BUILTIN 1
+
+#undef SUBTARGET_OVERRIDE_OPTIONS
+#define SUBTARGET_OVERRIDE_OPTIONS AARCH64_PE_OVERRIDE_OPTIONS
+
+#undef AARCH64_PE_OVERRIDE_OPTIONS
+#define AARCH64_PE_OVERRIDE_OPTIONS aarch64_pe_override_options ()
+extern void aarch64_pe_override_options (void);
 
 #endif

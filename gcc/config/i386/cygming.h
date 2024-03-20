@@ -18,8 +18,6 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-extern void mingw_pe_record_stub (const char *);
-
 #define DWARF2_DEBUGGING_INFO 1
 
 #undef PREFERRED_DEBUGGING_TYPE
@@ -221,7 +219,7 @@ do {									\
    section and we need to set DECL_SECTION_NAME so we do that here.
    Note that we can be called twice on the same decl.  */
 
-#define SUBTARGET_ENCODE_SECTION_INFO  mingw_pe_encode_section_info
+#define SUBTARGET_ENCODE_SECTION_INFO  i386_pe_encode_section_info
 
 /* Local and global relocs can be placed always into readonly memory
    for PE-COFF targets.  */
@@ -237,7 +235,7 @@ do {									\
 #undef ASM_DECLARE_OBJECT_NAME
 #define ASM_DECLARE_OBJECT_NAME(STREAM, NAME, DECL)	\
 do {							\
-  mingw_pe_maybe_record_exported_symbol (DECL, NAME, 1);	\
+  i386_pe_maybe_record_exported_symbol (DECL, NAME, 1);	\
   ASM_OUTPUT_LABEL ((STREAM), (NAME));			\
 } while (0)
 
@@ -285,16 +283,16 @@ do {						\
 /* Windows uses explicit import from shared libraries.  */
 #define MULTIPLE_SYMBOL_SPACES 1
 
-#define TARGET_ASM_UNIQUE_SECTION mingw_pe_unique_section
+#define TARGET_ASM_UNIQUE_SECTION i386_pe_unique_section
 #define TARGET_ASM_FUNCTION_RODATA_SECTION default_no_function_rodata_section
 
 #define SUPPORTS_ONE_ONLY 1
 
 /* Switch into a generic section.  */
-#define TARGET_ASM_NAMED_SECTION  mingw_pe_asm_named_section
+#define TARGET_ASM_NAMED_SECTION  i386_pe_asm_named_section
 
 /* Select attributes for named sections.  */
-#define TARGET_SECTION_TYPE_FLAGS  mingw_pe_section_type_flags
+#define TARGET_SECTION_TYPE_FLAGS  i386_pe_section_type_flags
 
 /* Write the extra assembler code needed to declare a function
    properly.  */
@@ -309,7 +307,7 @@ do {						\
 #define ASM_DECLARE_COLD_FUNCTION_NAME(FILE, NAME, DECL)	\
   do								\
     {								\
-      mingw_pe_declare_function_type (FILE, NAME, 0);		\
+      i386_pe_declare_function_type (FILE, NAME, 0);		\
       i386_pe_seh_cold_init (FILE, NAME);			\
       ASM_OUTPUT_LABEL (FILE, NAME);				\
     }								\
@@ -335,7 +333,7 @@ do {						\
 
 /* Declare the type properly for any external libcall.  */
 #define ASM_OUTPUT_EXTERNAL_LIBCALL(FILE, FUN) \
-  mingw_pe_declare_function_type (FILE, XSTR (FUN, 0), 1)
+  i386_pe_declare_function_type (FILE, XSTR (FUN, 0), 1)
 
 /* This says out to put a global symbol in the BSS section.  */
 #undef ASM_OUTPUT_ALIGNED_BSS
@@ -344,7 +342,7 @@ do {						\
 
 /* Output function declarations at the end of the file.  */
 #undef TARGET_ASM_FILE_END
-#define TARGET_ASM_FILE_END mingw_pe_file_end
+#define TARGET_ASM_FILE_END i386_pe_file_end
 
 /* Kludge because of missing PE-COFF support for early LTO debug.  */
 #undef  TARGET_ASM_LTO_START
@@ -418,9 +416,9 @@ do {						\
     {									\
       const char *alias							\
 	= IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (DECL));		\
-      mingw_pe_maybe_record_exported_symbol (DECL, alias, 0);		\
+      i386_pe_maybe_record_exported_symbol (DECL, alias, 0);		\
       if (TREE_CODE (DECL) == FUNCTION_DECL)				\
-	mingw_pe_declare_function_type (STREAM, alias,			\
+	i386_pe_declare_function_type (STREAM, alias,			\
 				       TREE_PUBLIC (DECL));		\
       ASM_OUTPUT_DEF (STREAM, alias, IDENTIFIER_POINTER (TARGET));	\
     } while (0)
@@ -445,7 +443,7 @@ do {						\
 
 #define SUBTARGET_ATTRIBUTE_TABLE \
   { "selectany", 0, 0, true, false, false, false, \
-    mingw_handle_selectany_attribute, NULL }
+    ix86_handle_selectany_attribute, NULL }
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req,
        affects_type_identity, handler, exclude } */
 
@@ -453,7 +451,7 @@ do {						\
 #undef NO_PROFILE_COUNTERS
 #define NO_PROFILE_COUNTERS 1
 
-#define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P mingw_pe_valid_dllimport_attribute_p
+#define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P i386_pe_valid_dllimport_attribute_p
 #define TARGET_CXX_ADJUST_CLASS_AT_DEFINITION i386_pe_adjust_class_at_definition
 #define SUBTARGET_MANGLE_DECL_ASSEMBLER_NAME i386_pe_mangle_decl_assembler_name
 
@@ -461,7 +459,7 @@ do {						\
 #define TARGET_ASM_ASSEMBLE_VISIBILITY i386_pe_assemble_visibility
 
 #undef SUB_TARGET_RECORD_STUB
-#define SUB_TARGET_RECORD_STUB mingw_pe_record_stub
+#define SUB_TARGET_RECORD_STUB i386_pe_record_stub
 
 /* Static stack checking is supported by means of probes.  */
 #define STACK_CHECK_STATIC_BUILTIN 1

@@ -46,10 +46,5 @@ along with GCC; see the file COPYING3.  If not see
 #define UINT_FAST32_TYPE "unsigned int"
 #define UINT_FAST64_TYPE "long long unsigned int"
 
-#if defined (TARGET_AARCH64_MS_ABI)
-# define INTPTR_TYPE "long long int"
-# define UINTPTR_TYPE "long long unsigned int"
-#else
-# define INTPTR_TYPE (TARGET_64BIT ? "long long int" : "int")
-# define UINTPTR_TYPE (TARGET_64BIT ? "long long unsigned int" : "unsigned int")
-#endif
+#define INTPTR_TYPE (TARGET_64BIT ? "long long int" : "int")
+#define UINTPTR_TYPE (TARGET_64BIT ? "long long unsigned int" : "unsigned int")

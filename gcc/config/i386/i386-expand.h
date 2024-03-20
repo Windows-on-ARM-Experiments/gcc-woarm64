@@ -34,8 +34,7 @@ struct expand_vec_perm_d
 };
 
 rtx legitimize_tls_address (rtx x, enum tls_model model, bool for_mov);
-bool is_imported_p (rtx x);
-alias_set_type mingw_GOT_alias_set (void);
+alias_set_type ix86_GOT_alias_set (void);
 rtx legitimize_pic_address (rtx orig, rtx reg);
 rtx legitimize_pe_coff_symbol (rtx addr, bool inreg);
 
