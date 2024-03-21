@@ -412,7 +412,7 @@ ix86_expand_move (machine_mode mode, rtx operands[])
 	}
       else
 	{
-	  tmp = legitimize_pe_coff_symbol (op1, addend != NULL_RTX);
+	  tmp = ix86_legitimize_pe_coff_symbol (op1, addend != NULL_RTX);
 	  if (tmp)
 	    {
 	      op1 = tmp;
