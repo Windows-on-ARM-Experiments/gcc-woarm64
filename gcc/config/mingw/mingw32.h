@@ -81,7 +81,7 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 #undef SUB_LINK_ENTRY
-#if TARGET_64BIT_DEFAULT
+#if TARGET_64BIT_DEFAULT || defined (TARGET_AARCH64_MS_ABI)
 #define SUB_LINK_ENTRY SUB_LINK_ENTRY64
 #else
 #define SUB_LINK_ENTRY SUB_LINK_ENTRY32
