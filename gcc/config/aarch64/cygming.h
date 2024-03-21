@@ -161,6 +161,9 @@ extern void mingw_pe_declare_function_type (FILE *file, const char *name,
     flag_stack_check = STATIC_BUILTIN_STACK_CHECK;	\
   } while (0)
 
+#define SUBTARGET_ATTRIBUTE_TABLE \
+  { "selectany", 0, 0, true, false, false, false, \
+    mingw_handle_selectany_attribute, NULL }
 
 #define SUPPORTS_ONE_ONLY 1
 
