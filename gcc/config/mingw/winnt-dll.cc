@@ -187,8 +187,12 @@ legitimize_pe_coff_symbol (rtx addr, bool inreg)
 	}
     }
 
+#if !defined (TARGET_AARCH64_MS_ABI)
+
   if (ix86_cmodel != CM_LARGE_PIC && ix86_cmodel != CM_MEDIUM_PIC)
     return NULL_RTX;
+
+#endif
 
   if (GET_CODE (addr) == SYMBOL_REF
       && !is_imported_p (addr)
