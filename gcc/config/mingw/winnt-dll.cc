@@ -55,7 +55,7 @@ is_imported_p (rtx x)
 /* Return a unique alias set for the GOT.  */
 
 alias_set_type
-ix86_GOT_alias_set (void)
+mingw_GOT_alias_set (void)
 {
   static alias_set_type set = -1;
   if (set == -1)
@@ -120,7 +120,7 @@ get_dllimport_decl (tree decl, bool beimport)
     }
 
   rtl = gen_const_mem (Pmode, rtl);
-  set_mem_alias_set (rtl, ix86_GOT_alias_set ());
+  set_mem_alias_set (rtl, mingw_GOT_alias_set ());
 
   SET_DECL_RTL (to, rtl);
   SET_DECL_ASSEMBLER_NAME (to, get_identifier (name));
