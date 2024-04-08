@@ -25,6 +25,7 @@
 #include "input.h"
 #include "config/arm/aarch-common.h"
 #include "config/mingw/winnt.h"
+#include "config/mingw/winnt-dll.h"
 
 /* SYMBOL_SMALL_ABSOLUTE: Generate symbol accesses through
    high and lo relocs that calculate the base address using a PC
