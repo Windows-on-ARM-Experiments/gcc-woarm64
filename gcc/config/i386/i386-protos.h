@@ -18,6 +18,7 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 #include "config/mingw/winnt.h"
+#include "config/mingw/winnt-dll.h"
 
 /* In i386-common.cc.  */
 extern bool ix86_handle_option (struct gcc_options *opts,
