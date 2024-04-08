@@ -2828,6 +2828,15 @@ tls_symbolic_operand_type (rtx addr)
   return tls_kind;
 }
 
+rtx aarch64_legitimize_pe_coff_symbol (rtx addr, bool inreg)
+{
+#if TARGET_PECOFF
+  return legitimize_pe_coff_symbol (addr, inreg);
+#else
+  return NULL_RTX;
+#endif
+}
+
 /* We'll allow lo_sum's in addresses in our legitimate addresses
    so that combine would take care of combining addresses where
    necessary, but for generation purposes, we'll generate the address
