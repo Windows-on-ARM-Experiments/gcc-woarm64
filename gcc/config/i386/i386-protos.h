@@ -18,6 +18,7 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 #include "config/mingw/winnt.h"
+#include "config/mingw/winnt-dll.h"
 
 /* In i386-common.cc.  */
 extern bool ix86_handle_option (struct gcc_options *opts,
@@ -315,7 +316,6 @@ extern void i386_pe_end_cold_function (FILE *, const char *, tree);
 extern void i386_pe_assemble_visibility (tree, int);
 extern tree i386_pe_mangle_decl_assembler_name (tree, tree);
 extern tree i386_pe_mangle_assembler_name (const char *);
-extern void i386_pe_record_stub (const char *);
 
 extern void i386_pe_seh_init (FILE *);
 extern void i386_pe_seh_end_prologue (FILE *);
