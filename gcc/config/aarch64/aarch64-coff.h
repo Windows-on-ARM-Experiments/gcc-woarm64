@@ -35,6 +35,9 @@
 #undef LONG_TYPE_SIZE
 #define LONG_TYPE_SIZE 32
 
+#define TARGET_64BIT_MS_ABI 1
+#define TARGET_SEH 1
+
 #ifndef ASM_GENERATE_INTERNAL_LABEL
 # define ASM_GENERATE_INTERNAL_LABEL(STRING, PREFIX, NUM)  \
   sprintf (STRING, "*%s%s%u", LOCAL_LABEL_PREFIX, PREFIX, (unsigned int)(NUM))
@@ -98,5 +101,15 @@
 #define CTORS_SECTION_ASM_OP "\t.section\t.init_array,\"aw\""
 #undef DTORS_SECTION_ASM_OP
 #define DTORS_SECTION_ASM_OP "\t.section\t.fini_array,\"aw\""
+
+// #undef STACK_CHECK_STATIC_BUILTIN
+// #define STACK_CHECK_STATIC_BUILTIN 1
+
+// #undef SUBTARGET_OVERRIDE_OPTIONS
+// #define SUBTARGET_OVERRIDE_OPTIONS AARCH64_PE_OVERRIDE_OPTIONS
+
+// #undef AARCH64_PE_OVERRIDE_OPTIONS
+// #define AARCH64_PE_OVERRIDE_OPTIONS aarch64_pe_override_options ()
+// extern void aarch64_pe_override_options (void);
 
 #endif
