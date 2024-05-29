@@ -1289,8 +1289,10 @@ aarch64-*-mingw*)
 	extra_options="${extra_options} mingw/cygming.opt mingw/mingw.opt"
 	extra_objs="${extra_objs} winnt.o winnt-dll.o"
 	c_target_objs="${c_target_objs} msformat-c.o"
+	cxx_target_objs="${cxx_target_objs} winnt-cxx.o msformat-c.o"
 	d_target_objs="${d_target_objs} winnt-d.o"
 	tmake_file="${tmake_file} mingw/t-cygming"
+	aarch64_multilibs="lp64"
 	case ${enable_threads} in
 	  "" | yes | win32)
 	    thread_file='win32'
@@ -1302,6 +1304,8 @@ aarch64-*-mingw*)
 	default_use_cxa_atexit=yes
 	user_headers_inc_next_post="${user_headers_inc_next_post} float.h"
 	tm_defines="${tm_defines} TARGET_AARCH64_MS_ABI=1"
+	TM_MULTILIB_CONFIG="${TM_MULTILIB_CONFIG},lp64"
+	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
 	;;
 aarch64*-wrs-vxworks*)
         tm_file="${tm_file} elfos.h aarch64/aarch64-elf.h"
