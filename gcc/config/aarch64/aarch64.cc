@@ -858,6 +858,8 @@ static const attribute_spec aarch64_gnu_attributes[] =
   { "Advanced SIMD type", 1, 1, false, true,  false, true,  NULL, NULL },
   { "SVE type",		  3, 3, false, true,  false, true,  NULL, NULL },
   { "SVE sizeless type",  0, 0, false, true,  false, true,  NULL, NULL },
+  { "cdecl", 		  0, 0, false, false, false, false, NULL, NULL },
+  { "stdcall", 		  0, 0, false, false, false, false, NULL, NULL },
 #if TARGET_DLLIMPORT_DECL_ATTRIBUTES
   { "dllimport", 0, 0, false, false, false, false, handle_dll_attribute, NULL },
   { "dllexport", 0, 0, false, false, false, false, handle_dll_attribute, NULL },
@@ -24552,7 +24554,9 @@ aarch64_declare_function_name (FILE *stream, const char* name,
   aarch64_asm_output_variant_pcs (stream, fndecl, name);
 
   /* Don't forget the type directive for ELF.  */
+#ifdef ASM_OUTPUT_TYPE_DIRECTIVE
   ASM_OUTPUT_TYPE_DIRECTIVE (stream, name, "function");
+#endif
   ASM_OUTPUT_FUNCTION_LABEL (stream, name, fndecl);
 
   cfun->machine->label_is_assembled = true;
@@ -24618,7 +24622,9 @@ aarch64_asm_output_alias (FILE *stream, const tree decl, const tree target)
   const char *name = XSTR (XEXP (DECL_RTL (decl), 0), 0);
   const char *value = IDENTIFIER_POINTER (target);
   aarch64_asm_output_variant_pcs (stream, decl, name);
+#ifdef ASM_OUTPUT_DEF // FIXME?
   ASM_OUTPUT_DEF (stream, name, value);
+#endif
 }
 
 /* Implement ASM_OUTPUT_EXTERNAL.  Output .variant_pcs for undefined
@@ -29299,13 +29305,17 @@ aarch64_sls_emit_shared_blr_thunks (FILE *out_file)
       /* Only emits if the compiler is configured for an assembler that can
 	 handle visibility directives.  */
       targetm.asm_out.assemble_visibility (decl, VISIBILITY_HIDDEN);
+#ifdef ASM_OUTPUT_TYPE_DIRECTIVE
       ASM_OUTPUT_TYPE_DIRECTIVE (out_file, name, "function");
+#endif
       ASM_OUTPUT_LABEL (out_file, name);
       aarch64_sls_emit_function_stub (out_file, regnum);
       /* Use the most conservative target to ensure it can always be used by any
 	 function in the translation unit.  */
       asm_fprintf (out_file, "\tdsb\tsy\n\tisb\n");
+#ifdef ASM_DECLARE_FUNCTION_SIZE
       ASM_DECLARE_FUNCTION_SIZE (out_file, name, decl);
+#endif
     }
 }
 
@@ -30601,6 +30611,13 @@ aarch64_run_selftests (void)
 
 #undef TARGET_ASM_ALIGNED_SI_OP
 #define TARGET_ASM_ALIGNED_SI_OP "\t.word\t"
+
+#undef TARGET_ASM_UNALIGNED_HI_OP
+#define TARGET_ASM_UNALIGNED_HI_OP TARGET_ASM_ALIGNED_HI_OP
+#undef TARGET_ASM_UNALIGNED_SI_OP
+#define TARGET_ASM_UNALIGNED_SI_OP TARGET_ASM_ALIGNED_SI_OP
+#undef TARGET_ASM_UNALIGNED_DI_OP
+#define TARGET_ASM_UNALIGNED_DI_OP TARGET_ASM_ALIGNED_DI_OP
 
 #undef TARGET_ASM_CAN_OUTPUT_MI_THUNK
 #define TARGET_ASM_CAN_OUTPUT_MI_THUNK \
