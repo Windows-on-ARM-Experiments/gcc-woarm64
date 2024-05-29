@@ -52,6 +52,11 @@ still needed for compilation.  */
 #undef TARGET_PECOFF
 #define TARGET_PECOFF 1
 
+#define DWARF2_DEBUGGING_INFO 1
+
+#undef PREFERRED_DEBUGGING_TYPE
+#define PREFERRED_DEBUGGING_TYPE DWARF2_DEBUG
+
 #include <stdbool.h>
 #ifdef __MINGW32__
 #include <stdio.h>
@@ -116,6 +121,20 @@ still needed for compilation.  */
   (fprintf (asm_out_file, "\t.section\t.drectve\n"), \
    in_section = NULL)
 
+/* This implements the `alias' attribute, keeping any stdcall or
+   fastcall decoration.  */
+#undef	ASM_OUTPUT_DEF_FROM_DECLS
+#define	ASM_OUTPUT_DEF_FROM_DECLS(STREAM, DECL, TARGET)			\
+  do									\
+    {									\
+      const char *alias							\
+	= IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (DECL));		\
+      mingw_pe_maybe_record_exported_symbol (DECL, alias, 0);		\
+      if (TREE_CODE (DECL) == FUNCTION_DECL)				\
+	mingw_pe_declare_function_type (STREAM, alias,			\
+				       TREE_PUBLIC (DECL));		\
+      ASM_OUTPUT_DEF (STREAM, alias, IDENTIFIER_POINTER (TARGET));	\
+    } while (0)
 
 /* Enable alias attribute support.  */
 #ifndef SET_ASM_OP
@@ -165,6 +184,38 @@ still needed for compilation.  */
   do {							\
     flag_stack_check = STATIC_BUILTIN_STACK_CHECK;	\
   } while (0)
+
+/* Use section relative relocations for debugging offsets.  Unlike
+   other targets that fake this by putting the section VMA at 0, PE
+   won't allow it.  */
+#define ASM_OUTPUT_DWARF_OFFSET(FILE, SIZE, LABEL, OFFSET, SECTION) \
+  do {								\
+    switch (SIZE)						\
+      {								\
+      case 4:							\
+	fputs ("\t.secrel32\t", FILE);				\
+	assemble_name (FILE, LABEL);				\
+	if ((OFFSET) != 0)					\
+	  fprintf (FILE, "+" HOST_WIDE_INT_PRINT_DEC,		\
+		   (HOST_WIDE_INT) (OFFSET));			\
+	break;							\
+      case 8:							\
+	/* This is a hack.  There is no 64-bit section relative	\
+	   relocation.  However, the COFF format also does not	\
+	   support 64-bit file offsets; 64-bit applications are	\
+	   limited to 32-bits of code+data in any one module.	\
+	   Fake the 64-bit offset by zero-extending it.  */	\
+	fputs ("\t.secrel32\t", FILE);				\
+	assemble_name (FILE, LABEL);				\
+	if ((OFFSET) != 0)					\
+	  fprintf (FILE, "+" HOST_WIDE_INT_PRINT_DEC,		\
+		   (HOST_WIDE_INT) (OFFSET));			\
+	fputs ("\n\t.long\t0", FILE);				\
+	break;							\
+      default:							\
+	gcc_unreachable ();					\
+      }								\
+  } while(0)
 
 #define SUBTARGET_ATTRIBUTE_TABLE \
   { "selectany", 0, 0, true, false, false, false, \
