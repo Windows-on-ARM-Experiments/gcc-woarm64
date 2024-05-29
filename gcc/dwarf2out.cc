@@ -1279,8 +1279,8 @@ dwarf2out_frame_finish (void)
     output_call_frame_info (0);
 
   /* Output another copy for the unwinder.  */
-  if (do_eh_frame)
-    output_call_frame_info (1);
+//   if (do_eh_frame)
+//     output_call_frame_info (1);
 }
 
 static void var_location_switch_text_section (void);
