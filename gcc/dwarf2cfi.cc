@@ -3739,6 +3739,8 @@ dwarf2out_do_cfi_asm (void)
 {
   int enc;
 
+  return false; // FIXME
+
   if (saved_do_cfi_asm != 0)
     return saved_do_cfi_asm > 0;
 
