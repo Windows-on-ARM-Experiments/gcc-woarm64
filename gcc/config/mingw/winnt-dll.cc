@@ -231,3 +231,5 @@ legitimize_pe_coff_symbol (rtx addr, bool inreg)
     }
   return NULL_RTX;
 }
+
+#include "gt-winnt-dll.h"
