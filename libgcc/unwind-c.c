@@ -126,6 +126,7 @@ PERSONALITY_FUNCTION (int version,
 		      struct _Unwind_Context *context)
 #endif
 {
+#if 0 // FIXME
   lsda_header_info info;
   const unsigned char *language_specific_data, *p;
   _Unwind_Ptr landing_pad, ip;
@@ -232,6 +233,7 @@ PERSONALITY_FUNCTION (int version,
 		 (_Unwind_Ptr) ue_header);
   _Unwind_SetGR (context, __builtin_eh_return_data_regno (1), 0);
   _Unwind_SetIP (context, landing_pad);
+#endif
   return _URC_INSTALL_CONTEXT;
 }
 
