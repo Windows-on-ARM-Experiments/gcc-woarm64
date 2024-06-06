@@ -1293,7 +1293,7 @@ aarch64-*-mingw*)
 	d_target_objs="${d_target_objs} winnt-d.o"
 	target_has_targetcm="yes"
 	target_has_targetdm="yes"
-	tmake_file="${tmake_file} t-winnt mingw/t-cygming"
+	tmake_file="${tmake_file} t-winnt mingw/t-cygming t-slibgcc"
 	aarch64_multilibs="llp64"
 	case ${enable_threads} in
 	  "" | yes | win32)
