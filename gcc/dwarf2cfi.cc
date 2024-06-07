@@ -3736,6 +3736,8 @@ dwarf2out_do_frame (void)
 bool
 dwarf2out_do_cfi_asm (void)
 {
+  return false;
+
   int enc;
 
   if (saved_do_cfi_asm != 0)
