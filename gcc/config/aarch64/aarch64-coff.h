@@ -20,9 +20,8 @@
 #ifndef GCC_AARCH64_COFF_H
 #define GCC_AARCH64_COFF_H
 
-#ifndef LOCAL_LABEL_PREFIX
-# define LOCAL_LABEL_PREFIX 	""
-#endif
+#undef LOCAL_LABEL_PREFIX
+#define LOCAL_LABEL_PREFIX  "."
 
 /* Using long long breaks -ansi and -std=c90, so these will need to be
    made conditional for an LLP64 ABI.  */
@@ -56,17 +55,24 @@
     }
 #endif
 
-/* Output a local common block.  /bin/as can't do this, so hack a
-   `.space' into the bss segment.  Note that this is *bad* practice,
-   which is guaranteed NOT to work since it doesn't define STATIC
-   COMMON space but merely STATIC BSS space.  */
-#ifndef ASM_OUTPUT_ALIGNED_LOCAL
-# define ASM_OUTPUT_ALIGNED_LOCAL(STREAM, NAME, SIZE, ALIGN)		\
+#define COMMON_ASM_OP	"\t.comm\t"
+
+#undef  ASM_OUTPUT_ALIGNED_COMMON
+#define ASM_OUTPUT_ALIGNED_COMMON(FILE, NAME, SIZE, ALIGN)		\
+  do									\
     {									\
-      switch_to_section (bss_section);					\
-      ASM_OUTPUT_ALIGN (STREAM, floor_log2 (ALIGN / BITS_PER_UNIT));	\
-      ASM_OUTPUT_LABEL (STREAM, NAME);					\
-      fprintf (STREAM, "\t.space\t%d\n", (int)(SIZE));			\
+      fprintf ((FILE), "%s", COMMON_ASM_OP);				\
+      assemble_name ((FILE), (NAME));					\
+      fprintf ((FILE), "," HOST_WIDE_INT_PRINT_UNSIGNED ",%u\n",		\
+	       (SIZE), (ALIGN) / BITS_PER_UNIT);			\
+    }									\
+  while (0)
+
+
+#ifndef ASM_OUTPUT_ALIGNED_LOCAL
+# define ASM_OUTPUT_ALIGNED_LOCAL(FILE, NAME, SIZE, ALIGN)		\
+    {									\
+      ASM_OUTPUT_ALIGNED_COMMON (FILE, NAME, SIZE, ALIGN);	\
     }
 #endif
 
