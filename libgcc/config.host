@@ -485,9 +485,9 @@ aarch64-*-mingw*)
 	else
 		tmake_dlldir_file="i386/t-dlldir-x"
 	fi
-	tmake_file="${tmake_file} ${tmake_thr_file} ${tmake_eh_file} ${tmake_dlldir_file}"
+	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_thr_file} ${tmake_dlldir_file}"
 	tmake_file="${tmake_file} t-dfprules"
-	tmake_file="${tmake_file} i386/t-slibgcc-cygming i386/t-cygming i386/t-mingw32"
+	tmake_file="${tmake_file} i386/t-slibgcc-cygming i386/t-slibgcc-mingw i386/t-cygming i386/t-mingw32"
 	tmake_file="${tmake_file} ${cpu_type}/t-aarch64"
 	tmake_file="${tmake_file} ${cpu_type}/t-lse t-slibgcc-libgcc"
 	tmake_file="${tmake_file} ${cpu_type}/t-softfp t-softfp t-crtfm"
