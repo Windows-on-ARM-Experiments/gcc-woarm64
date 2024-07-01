@@ -68,13 +68,14 @@
     }									\
   while (0)
 
-
-#ifndef ASM_OUTPUT_ALIGNED_LOCAL
-# define ASM_OUTPUT_ALIGNED_LOCAL(FILE, NAME, SIZE, ALIGN)		\
-    {									\
-      ASM_OUTPUT_ALIGNED_COMMON (FILE, NAME, SIZE, ALIGN);	\
-    }
-#endif
+#undef ASM_OUTPUT_ALIGNED_LOCAL
+#define ASM_OUTPUT_ALIGNED_LOCAL(STREAM, NAME, SIZE, ALIGN)           \
+     {                                                                 \
+      mingw_pe_declare_function_type (STREAM, NAME, 0); \
+      ASM_OUTPUT_ALIGN (STREAM, floor_log2 (ALIGN / BITS_PER_UNIT));   \
+      ASM_OUTPUT_LABEL (STREAM, NAME);                                 \
+      fprintf (STREAM, "\t.space\t%d\n", (int)(SIZE));                 \
+     }
 
 #define ASM_OUTPUT_SKIP(STREAM, NBYTES) 	\
   fprintf (STREAM, "\t.space\t%d  // skip\n", (int) (NBYTES))
