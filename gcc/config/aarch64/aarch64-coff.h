@@ -55,31 +55,11 @@
     }
 #endif
 
-#define COMMON_ASM_OP	"\t.comm\t"
+#define ASM_OUTPUT_ALIGNED_LOCAL(FILE, NAME, SIZE, ALIGNMENT)  \
+  ( fputs (".comm ", (FILE)),			\
+    assemble_name ((FILE), (NAME)),		\
+    fprintf ((FILE), ",%u,%u\n", (int)(SIZE), (int)(ALIGNMENT) / BITS_PER_UNIT))
 
-#undef  ASM_OUTPUT_ALIGNED_COMMON
-#define ASM_OUTPUT_ALIGNED_COMMON(FILE, NAME, SIZE, ALIGN)		\
-  do									\
-    {									\
-      fprintf ((FILE), "%s", COMMON_ASM_OP);				\
-      assemble_name ((FILE), (NAME));					\
-      fprintf ((FILE), "," HOST_WIDE_INT_PRINT_UNSIGNED ",%u\n",		\
-	       (SIZE), (ALIGN) / BITS_PER_UNIT);			\
-    }									\
-  while (0)
-
-#undef ASM_OUTPUT_ALIGNED_LOCAL
-#define ASM_OUTPUT_ALIGNED_LOCAL(STREAM, NAME, SIZE, ALIGN)           \
-     {                                                                 \
-      switch_to_section (bss_section); \
-      fprintf (STREAM, "\t.def\t"); \
-      assemble_name (STREAM, NAME); \
-      fprintf (STREAM, ";\t.scl\t%d;\t.type\t%d;\t.endef\n", \
-	       3, (int) 0 << 4); \
-      ASM_OUTPUT_ALIGN (STREAM, floor_log2 (ALIGN / BITS_PER_UNIT));   \
-      ASM_OUTPUT_LABEL (STREAM, NAME);                                 \
-      fprintf (STREAM, "\t.space\t%d\n", (int)(SIZE));                 \
-     }
 
 #define ASM_OUTPUT_SKIP(STREAM, NBYTES) 	\
   fprintf (STREAM, "\t.space\t%d  // skip\n", (int) (NBYTES))
