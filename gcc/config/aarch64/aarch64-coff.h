@@ -71,7 +71,11 @@
 #undef ASM_OUTPUT_ALIGNED_LOCAL
 #define ASM_OUTPUT_ALIGNED_LOCAL(STREAM, NAME, SIZE, ALIGN)           \
      {                                                                 \
-      mingw_pe_declare_function_type (STREAM, NAME, 0); \
+      switch_to_section (bss_section); \
+      fprintf (STREAM, "\t.def\t"); \
+      assemble_name (STREAM, NAME); \
+      fprintf (STREAM, ";\t.scl\t%d;\t.type\t%d;\t.endef\n", \
+	       3, (int) 0 << 4); \
       ASM_OUTPUT_ALIGN (STREAM, floor_log2 (ALIGN / BITS_PER_UNIT));   \
       ASM_OUTPUT_LABEL (STREAM, NAME);                                 \
       fprintf (STREAM, "\t.space\t%d\n", (int)(SIZE));                 \

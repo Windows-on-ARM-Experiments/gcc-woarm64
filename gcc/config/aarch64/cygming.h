@@ -286,7 +286,10 @@ extern void i386_pe_record_external_function (tree, const char *);
 #undef ASM_DECLARE_OBJECT_NAME
 #define ASM_DECLARE_OBJECT_NAME(STREAM, NAME, DECL)	\
 do {							\
-  mingw_pe_declare_function_type (STREAM, NAME, 0); \
+  fprintf (STREAM, "\t.def\t"); \
+  assemble_name (STREAM, NAME); \
+  fprintf (STREAM, ";\t.scl\t%d;\t.type\t%d;\t.endef\n", \
+      3, (int) 0 << 4); \
   ASM_OUTPUT_LABEL ((STREAM), (NAME));			\
 } while (0)
 
