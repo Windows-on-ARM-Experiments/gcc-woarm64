@@ -6066,6 +6066,15 @@ aarch64_expand_mov_immediate (rtx dest, rtx imm)
 	case SYMBOL_TLSLE24:
 	case SYMBOL_TLSLE32:
 	case SYMBOL_TLSLE48:
+	  if (const_offset != 0)
+	    {
+	      gcc_assert(can_create_pseudo_p ());
+	      base = aarch64_force_temporary (int_mode, dest, base);
+	      aarch64_add_offset (int_mode, dest, base, const_offset,
+				  NULL_RTX, NULL_RTX, 0, false);
+	      return;
+	    }
+
 	  aarch64_load_symref_appropriately (dest, imm, sty);
 	  return;
 
