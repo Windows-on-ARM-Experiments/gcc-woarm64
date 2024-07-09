@@ -20,9 +20,8 @@
 #ifndef GCC_AARCH64_COFF_H
 #define GCC_AARCH64_COFF_H
 
-#ifndef LOCAL_LABEL_PREFIX
-# define LOCAL_LABEL_PREFIX 	""
-#endif
+#undef LOCAL_LABEL_PREFIX
+#define LOCAL_LABEL_PREFIX  "."
 
 /* Using long long breaks -ansi and -std=c90, so these will need to be
    made conditional for an LLP64 ABI.  */
@@ -36,6 +35,9 @@
 #define LONG_TYPE_SIZE 32
 
 #define TARGET_SEH 1
+
+#undef TARGET_MAX_ANCHOR_OFFSET
+#define TARGET_MAX_ANCHOR_OFFSET 0
 
 #ifndef ASM_GENERATE_INTERNAL_LABEL
 # define ASM_GENERATE_INTERNAL_LABEL(STRING, PREFIX, NUM)  \
@@ -56,19 +58,10 @@
     }
 #endif
 
-/* Output a local common block.  /bin/as can't do this, so hack a
-   `.space' into the bss segment.  Note that this is *bad* practice,
-   which is guaranteed NOT to work since it doesn't define STATIC
-   COMMON space but merely STATIC BSS space.  */
-#ifndef ASM_OUTPUT_ALIGNED_LOCAL
-# define ASM_OUTPUT_ALIGNED_LOCAL(STREAM, NAME, SIZE, ALIGN)		\
-    {									\
-      switch_to_section (bss_section);					\
-      ASM_OUTPUT_ALIGN (STREAM, floor_log2 (ALIGN / BITS_PER_UNIT));	\
-      ASM_OUTPUT_LABEL (STREAM, NAME);					\
-      fprintf (STREAM, "\t.space\t%d\n", (int)(SIZE));			\
-    }
-#endif
+#define ASM_OUTPUT_LOCAL(FILE, NAME, SIZE, ROUNDED)  \
+( fputs (".lcomm ", (FILE)),			\
+  assemble_name ((FILE), (NAME)),		\
+  fprintf ((FILE), ",%u\n", (int)(ROUNDED)))
 
 #define ASM_OUTPUT_SKIP(STREAM, NBYTES) 	\
   fprintf (STREAM, "\t.space\t%d  // skip\n", (int) (NBYTES))
