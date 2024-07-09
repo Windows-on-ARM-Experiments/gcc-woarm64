@@ -6095,6 +6095,15 @@ aarch64_expand_mov_immediate (rtx dest, rtx imm)
 	case SYMBOL_TLSLE24:
 	case SYMBOL_TLSLE32:
 	case SYMBOL_TLSLE48:
+	  if (const_offset != 0)
+	    {
+	      gcc_assert(can_create_pseudo_p ());
+	      base = aarch64_force_temporary (int_mode, dest, base);
+	      aarch64_add_offset (int_mode, dest, base, const_offset,
+				  NULL_RTX, NULL_RTX, 0, false);
+	      return;
+	    }
+
 	  aarch64_load_symref_appropriately (dest, imm, sty);
 	  return;
 
@@ -31028,8 +31037,9 @@ aarch64_libgcc_floating_mode_supported_p
 /* Limit the maximum anchor offset to 4k-1, since that's the limit for a
    byte offset; we can do much more for larger data types, but have no way
    to determine the size of the access.  We assume accesses are aligned.  */
-#undef TARGET_MAX_ANCHOR_OFFSET
+#ifndef TARGET_MAX_ANCHOR_OFFSET
 #define TARGET_MAX_ANCHOR_OFFSET 4095
+#endif
 
 #undef TARGET_VECTORIZE_PREFERRED_DIV_AS_SHIFTS_OVER_MULT
 #define TARGET_VECTORIZE_PREFERRED_DIV_AS_SHIFTS_OVER_MULT \
