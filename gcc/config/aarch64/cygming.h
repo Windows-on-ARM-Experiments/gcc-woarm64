@@ -283,6 +283,22 @@ extern void i386_pe_record_external_function (tree, const char *);
 
 #define SUPPORTS_ONE_ONLY 1
 
+#undef ASM_DECLARE_OBJECT_NAME
+#define ASM_DECLARE_OBJECT_NAME(STREAM, NAME, DECL)	\
+do {							\
+  fprintf (STREAM, "\t.def\t"); \
+  assemble_name (STREAM, NAME); \
+  fprintf (STREAM, ";\t.scl\t%d;\t.type\t%d;\t.endef\n", \
+      3, (int) 0 << 4); \
+  ASM_OUTPUT_LABEL ((STREAM), (NAME));			\
+} while (0)
+
+#undef ASM_DECLARE_FUNCTION_NAME
+#define ASM_DECLARE_FUNCTION_NAME(STR, NAME, DECL)	\
+  mingw_pe_declare_function_type (STR, NAME, TREE_PUBLIC (DECL)); \
+  aarch64_declare_function_name (STR, NAME, DECL)
+
+
 /* Define this to be nonzero if static stack checking is supported.  */
 #define STACK_CHECK_STATIC_BUILTIN 1
 
@@ -298,7 +314,7 @@ extern void i386_pe_record_external_function (tree, const char *);
 #undef GOT_ALIAS_SET
 #define GOT_ALIAS_SET mingw_GOT_alias_set ()
 
-#define PE_COFF_LEGITIMIZE_EXTERN_DECL 1
+#define PE_COFF_LEGITIMIZE_EXTERN_DECL 0
 
 #define HAVE_64BIT_POINTERS 1
 
