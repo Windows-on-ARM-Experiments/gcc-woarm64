@@ -318,6 +318,15 @@ do {							\
 
 #define HAVE_64BIT_POINTERS 1
 
+extern void i386_pe_asm_lto_start (void);
+extern void i386_pe_asm_lto_end (void);
+
+/* Kludge because of missing PE-COFF support for early LTO debug.  */
+#undef  TARGET_ASM_LTO_START
+#define TARGET_ASM_LTO_START i386_pe_asm_lto_start
+#undef  TARGET_ASM_LTO_END
+#define TARGET_ASM_LTO_END i386_pe_asm_lto_end
+
 /* According to Windows x64 software convention, the maximum stack allocatable
    in the prologue is 4G - 8 bytes.  Furthermore, there is a limited set of
    instructions allowed to adjust the stack pointer in the epilog, forcing the
