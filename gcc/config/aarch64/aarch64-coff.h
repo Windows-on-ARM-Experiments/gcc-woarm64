@@ -65,11 +65,12 @@
 
 #define ASM_OUTPUT_ALIGNED_LOCAL(FILE, NAME, SIZE, ALIGNMENT)  \
   { \
-    unsigned HOST_WIDE_INT rounded = MAX((SIZE), 1); \
-    unsigned HOST_WIDE_INT alignment = MAX((ALIGNMENT), BIGGEST_ALIGNMENT); \
-    rounded += (alignment / BITS_PER_UNIT) - 1; \
-    rounded = (rounded / (alignment / BITS_PER_UNIT) \
-      * (alignment / BITS_PER_UNIT)); \
+    unsigned HOST_WIDE_INT rounded = SIZE; \
+    if (SIZE == 0) \
+      rounded = 1; \
+    rounded += (ALIGNMENT / BITS_PER_UNIT) - 1; \
+    rounded = (rounded / (ALIGNMENT / BITS_PER_UNIT) \
+        * ((ALIGNMENT) / BITS_PER_UNIT)); \
     ASM_OUTPUT_LOCAL(FILE, NAME, SIZE, rounded); \
   }
 
