@@ -295,7 +295,7 @@ do {							\
 
 #undef ASM_DECLARE_FUNCTION_NAME
 #define ASM_DECLARE_FUNCTION_NAME(STR, NAME, DECL)	\
-  mingw_pe_declare_function_type (STR, NAME, TREE_PUBLIC (DECL)); \
+  mingw_pe_declare_function_type (STR, NAME, !strcmp((NAME), "__main") || TREE_PUBLIC (DECL)); \
   aarch64_declare_function_name (STR, NAME, DECL)
 
 
