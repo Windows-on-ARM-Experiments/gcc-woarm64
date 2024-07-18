@@ -20908,6 +20908,9 @@ aarch64_tlsdesc_abi_id ()
 static bool
 aarch64_symbol_binds_local_p (const_rtx x)
 {
+  if (TARGET_PECOFF)
+    return true;
+
   return (SYMBOL_REF_DECL (x)
 	  ? targetm.binds_local_p (SYMBOL_REF_DECL (x))
 	  : SYMBOL_REF_LOCAL_P (x));
@@ -21035,7 +21038,7 @@ aarch64_classify_symbol (rtx x, HOST_WIDE_INT offset)
 	  if ((flag_pic || SYMBOL_REF_WEAK (x))
 	      && !aarch64_symbol_binds_local_p (x))
 	    return aarch64_cmodel == AARCH64_CMODEL_SMALL_SPIC
-		    ? SYMBOL_SMALL_ABSOLUTE : SYMBOL_SMALL_ABSOLUTE;
+		    ? SYMBOL_SMALL_GOT_28K : SYMBOL_SMALL_GOT_4G;
 
 	  /* Same reasoning as the tiny code model, but the offset cap here is
 	     1MB, allowing +/-3.9GB for the offset to the symbol.  */
