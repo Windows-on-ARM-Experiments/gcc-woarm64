@@ -206,7 +206,10 @@ legitimize_pe_coff_symbol (rtx addr, bool inreg)
 	}
     }
 
-  if (!PE_COFF_LEGITIMIZE_EXTERN_DECL)
+  // if (!PE_COFF_LEGITIMIZE_EXTERN_DECL)
+  //   return NULL_RTX;
+
+  if (!SYMBOL_REF_WEAK(addr))
     return NULL_RTX;
 
   if (GET_CODE (addr) == SYMBOL_REF

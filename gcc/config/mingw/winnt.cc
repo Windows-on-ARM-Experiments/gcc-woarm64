@@ -807,6 +807,9 @@ mingw_pe_file_end (void)
 	  if (!startswith (name, "refptr."))
 	    continue;
 	  name += 7;
+	  fprintf (asm_out_file, "\t.weak\t%s\n", name);
+	  fprintf (asm_out_file, "\t.def\t%s;\t.scl	2;\t.type	32;\t.endef\n", name);
+
 	  fprintf (asm_out_file, "\t.section\t.rdata$%s, \"dr\"\n"
 	  		   "\t.globl\t%s\n"
 			   "\t.linkonce\tdiscard\n", oname, oname);
