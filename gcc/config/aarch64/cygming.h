@@ -315,7 +315,7 @@ do {							\
 #define GOT_ALIAS_SET mingw_GOT_alias_set ()
 
 #define PE_COFF_LEGITIMIZE_EXTERN_DECL(RTX) \
-  (SYMBOL_REF_WEAK(RTX))
+  (GET_CODE (RTX) == SYMBOL_REF && SYMBOL_REF_WEAK(RTX))
 
 #define HAVE_64BIT_POINTERS 1
 
