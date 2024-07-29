@@ -279,7 +279,7 @@ extern void i386_pe_record_external_function (tree, const char *);
     mingw_handle_selectany_attribute, NULL }
 
 #undef SUB_TARGET_RECORD_STUB
-#define SUB_TARGET_RECORD_STUB mingw_pe_record_stub
+#define SUB_TARGET_RECORD_STUB(NAME, DECL) mingw_pe_record_stub((NAME), DECL_WEAK((DECL)))
 
 #define SUPPORTS_ONE_ONLY 1
 
@@ -314,7 +314,8 @@ do {							\
 #undef GOT_ALIAS_SET
 #define GOT_ALIAS_SET mingw_GOT_alias_set ()
 
-#define PE_COFF_LEGITIMIZE_EXTERN_DECL 0
+#define PE_COFF_LEGITIMIZE_EXTERN_DECL(RTX) \
+  (GET_CODE (RTX) == SYMBOL_REF && SYMBOL_REF_WEAK(RTX))
 
 #define HAVE_64BIT_POINTERS 1
 
