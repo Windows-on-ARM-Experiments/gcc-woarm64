@@ -635,7 +635,7 @@ struct GTY(()) stub_list
 {
   struct stub_list *next;
   const char *name;
-  bool is_weak;
+  bool is_weak_decl_needed;
 };
 
 static GTY(()) struct export_list *export_head;
@@ -673,7 +673,7 @@ mingw_pe_maybe_record_exported_symbol (tree decl, const char *name, int is_data)
 }
 
 void
-mingw_pe_record_stub (const char *name, bool is_weak)
+mingw_pe_record_stub (const char *name, bool is_weak_decl_needed)
 {
   struct stub_list *p;
 
@@ -692,7 +692,7 @@ mingw_pe_record_stub (const char *name, bool is_weak)
   p = ggc_alloc<stub_list> ();
   p->next = stub_head;
   p->name = name;
-  p->is_weak = is_weak;
+  p->is_weak_decl_needed = is_weak_decl_needed;
   stub_head = p;
 }
 
@@ -810,10 +810,12 @@ mingw_pe_file_end (void)
 	    continue;
 	  name += 7;
 
-	  if (q->is_weak)
+	  if (q->is_weak_decl_needed)
 	    {
-	      fprintf (asm_out_file, "\t.weak\t%s\n", name);
-	      fprintf (asm_out_file, "\t.def\t%s;\t.scl	2;\t.type	32;\t.endef\n", name);
+#ifdef ASM_WEAKEN_LABEL
+        ASM_WEAKEN_LABEL (asm_out_file, name);
+#endif
+        mingw_pe_declare_function_type(asm_out_file, name, 1);
 	    }
 
 	  fprintf (asm_out_file, "\t.section\t.rdata$%s, \"dr\"\n"

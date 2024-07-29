@@ -134,7 +134,7 @@ get_dllimport_decl (tree decl, bool beimport)
     {
       SYMBOL_REF_FLAGS (rtl) |= SYMBOL_FLAG_EXTERNAL;
 #ifdef SUB_TARGET_RECORD_STUB
-      SUB_TARGET_RECORD_STUB (name, DECL_WEAK(decl));
+      SUB_TARGET_RECORD_STUB (name, decl);
 #endif
     }
 
