@@ -50,8 +50,7 @@ else
 fi],
 [case $host in
 	i?86-*-msdosdjgpp* | \
-	i?86-*-mingw32* | \
-	x86_64-*-mingw32* | \
+	*-*-mingw32* | \
 	*-*-beos* | \
         *-*-*vms*)
 		TARGET=twoprocess
