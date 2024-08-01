@@ -58,6 +58,13 @@
   assemble_name ((FILE), (NAME)),		\
   fprintf ((FILE), "," HOST_WIDE_INT_PRINT_UNSIGNED "\n", (ROUNDED)))
 
+#define ASM_OUTPUT_ALIGNED_LOCAL(FILE, NAME, SIZE, ALIGNMENT)	\
+  {								\
+    unsigned rounded = ROUND_UP (MAX ((SIZE), 1),		\
+      MAX ((ALIGNMENT), BIGGEST_ALIGNMENT) / BITS_PER_UNIT);	\
+    ASM_OUTPUT_LOCAL (FILE, NAME, SIZE, rounded);		\
+  }
+
 #define ASM_OUTPUT_SKIP(STREAM, NBYTES) 	\
   fprintf (STREAM, "\t.space\t%d  // skip\n", (int) (NBYTES))
 
