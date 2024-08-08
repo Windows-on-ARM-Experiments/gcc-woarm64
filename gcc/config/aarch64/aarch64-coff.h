@@ -69,7 +69,7 @@
     unsigned HOST_WIDE_INT alignment = MAX((ALIGNMENT), BIGGEST_ALIGNMENT); \
     rounded += (alignment / BITS_PER_UNIT) - 1; \
     rounded = (rounded / (alignment / BITS_PER_UNIT) \
-        * (alignment / BITS_PER_UNIT)); \
+      * (alignment / BITS_PER_UNIT)); \
     ASM_OUTPUT_LOCAL(FILE, NAME, SIZE, rounded); \
   }
 
