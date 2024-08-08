@@ -295,7 +295,7 @@ do {							\
 
 #undef ASM_DECLARE_FUNCTION_NAME
 #define ASM_DECLARE_FUNCTION_NAME(STR, NAME, DECL)	\
-  mingw_pe_declare_function_type (STR, NAME, TREE_PUBLIC (DECL)); \
+  mingw_pe_declare_function_type (STR, NAME, !strcmp((NAME), "__main") || TREE_PUBLIC (DECL)); \
   aarch64_declare_function_name (STR, NAME, DECL)
 
 
@@ -319,11 +319,16 @@ do {							\
 
 #define HAVE_64BIT_POINTERS 1
 
+extern void i386_pe_assemble_visibility (tree, int);
+
 /* Kludge because of missing PE-COFF support for early LTO debug.  */
 #undef  TARGET_ASM_LTO_START
 #define TARGET_ASM_LTO_START mingw_pe_asm_lto_start
 #undef  TARGET_ASM_LTO_END
 #define TARGET_ASM_LTO_END mingw_pe_asm_lto_end
+
+#undef TARGET_ASM_ASSEMBLE_VISIBILITY
+#define TARGET_ASM_ASSEMBLE_VISIBILITY i386_pe_assemble_visibility
 
 /* According to Windows x64 software convention, the maximum stack allocatable
    in the prologue is 4G - 8 bytes.  Furthermore, there is a limited set of
