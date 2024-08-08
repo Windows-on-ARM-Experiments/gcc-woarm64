@@ -20922,6 +20922,9 @@ aarch64_tlsdesc_abi_id ()
 static bool
 aarch64_symbol_binds_local_p (const_rtx x)
 {
+  if (TARGET_PECOFF)
+    return true;
+
   return (SYMBOL_REF_DECL (x)
 	  ? targetm.binds_local_p (SYMBOL_REF_DECL (x))
 	  : SYMBOL_REF_LOCAL_P (x));
