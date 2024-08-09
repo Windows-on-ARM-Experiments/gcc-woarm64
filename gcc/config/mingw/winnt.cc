@@ -260,7 +260,7 @@ i386_pe_maybe_mangle_decl_assembler_name (tree decl, tree id)
    user-specified visibility attributes.  */
 
 void
-i386_pe_assemble_visibility (tree decl, int)
+mingw_pe_assemble_visibility (tree decl, int)
 {
   if (!decl
       || !lookup_attribute ("visibility", DECL_ATTRIBUTES (decl)))

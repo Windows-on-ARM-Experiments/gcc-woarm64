@@ -325,6 +325,9 @@ do {							\
 #undef  TARGET_ASM_LTO_END
 #define TARGET_ASM_LTO_END mingw_pe_asm_lto_end
 
+#undef TARGET_ASM_ASSEMBLE_VISIBILITY
+#define TARGET_ASM_ASSEMBLE_VISIBILITY mingw_pe_assemble_visibility
+
 /* According to Windows x64 software convention, the maximum stack allocatable
    in the prologue is 4G - 8 bytes.  Furthermore, there is a limited set of
    instructions allowed to adjust the stack pointer in the epilog, forcing the
