@@ -213,6 +213,18 @@ still needed for compilation.  */
 
 #define SUPPORTS_ONE_ONLY 1
 
+#undef ASM_DECLARE_OBJECT_NAME
+#define ASM_DECLARE_OBJECT_NAME(STREAM, NAME, DECL)	\
+  mingw_pe_declare_object_type (STREAM, NAME, TREE_PUBLIC (DECL)); \
+  ASM_OUTPUT_LABEL ((STREAM), (NAME))
+
+
+#undef ASM_DECLARE_FUNCTION_NAME
+#define ASM_DECLARE_FUNCTION_NAME(STR, NAME, DECL)	\
+  mingw_pe_declare_function_type (STR, NAME, TREE_PUBLIC (DECL)); \
+  aarch64_declare_function_name (STR, NAME, DECL)
+
+
 /* Define this to be nonzero if static stack checking is supported.  */
 #define STACK_CHECK_STATIC_BUILTIN 1
 

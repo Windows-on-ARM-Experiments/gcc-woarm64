@@ -582,6 +582,16 @@ i386_pe_asm_output_aligned_decl_common (FILE *stream, tree decl,
    visible.  */
 
 void
+mingw_pe_declare_object_type (FILE *file, const char *name, int pub)
+{
+  fprintf (file, "\t.def\t");
+  assemble_name (file, name);
+  fprintf (file, ";\t.scl\t%d;\t.type\t%d;\t.endef\n",
+	   pub ? (int) C_EXT : (int) C_STAT,
+	   (int) DT_NON << N_BTSHFT);
+}
+
+void
 mingw_pe_declare_function_type (FILE *file, const char *name, int pub)
 {
   fprintf (file, "\t.def\t");
