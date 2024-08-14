@@ -35,6 +35,8 @@
 #undef LONG_TYPE_SIZE
 #define LONG_TYPE_SIZE 32
 
+#define TARGET_SEH 0
+
 #ifndef ASM_GENERATE_INTERNAL_LABEL
 # define ASM_GENERATE_INTERNAL_LABEL(STRING, PREFIX, NUM)  \
   sprintf (STRING, "*%s%s%u", LOCAL_LABEL_PREFIX, PREFIX, (unsigned int)(NUM))
