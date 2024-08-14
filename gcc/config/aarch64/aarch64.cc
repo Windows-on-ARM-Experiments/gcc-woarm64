@@ -30962,8 +30962,9 @@ aarch64_libgcc_floating_mode_supported_p
 /* Limit the maximum anchor offset to 4k-1, since that's the limit for a
    byte offset; we can do much more for larger data types, but have no way
    to determine the size of the access.  We assume accesses are aligned.  */
-#undef TARGET_MAX_ANCHOR_OFFSET
+#ifndef TARGET_MAX_ANCHOR_OFFSET
 #define TARGET_MAX_ANCHOR_OFFSET 4095
+#endif
 
 #undef TARGET_VECTORIZE_PREFERRED_DIV_AS_SHIFTS_OVER_MULT
 #define TARGET_VECTORIZE_PREFERRED_DIV_AS_SHIFTS_OVER_MULT \
