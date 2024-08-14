@@ -4887,6 +4887,17 @@ aarch64_split_add_offset (scalar_int_mode mode, rtx dest, rtx src,
 		      temp1, temp2, 0, false);
 }
 
+static void
+aarch64_load_symref_and_add_offset (scalar_int_mode mode, rtx dest, rtx src,
+		    poly_int64 offset)
+{
+  gcc_assert (can_create_pseudo_p ());
+  src = aarch64_force_temporary (mode, dest, src);
+  aarch64_add_offset (mode, dest, src, offset,
+		      NULL_RTX, NULL_RTX, 0, false);
+}
+
+
 /* Add DELTA to the stack pointer, marking the instructions frame-related.
    TEMP1 is available as a temporary if nonnull.  FORCE_ISA_MODE is as
    for aarch64_add_offset.  EMIT_MOVE_IMM is false if TEMP1 already
@@ -6054,10 +6065,8 @@ aarch64_expand_mov_immediate (rtx dest, rtx imm)
 	case SYMBOL_TINY_TLSIE:
 	  if (const_offset != 0)
 	    {
-	      gcc_assert(can_create_pseudo_p ());
-	      base = aarch64_force_temporary (int_mode, dest, base);
-	      aarch64_add_offset (int_mode, dest, base, const_offset,
-				  NULL_RTX, NULL_RTX, 0, false);
+	      aarch64_load_symref_and_add_offset (int_mode, dest, base,
+						  const_offset);
 	      return;
 	    }
 	  /* FALLTHRU */
@@ -6068,6 +6077,13 @@ aarch64_expand_mov_immediate (rtx dest, rtx imm)
 	case SYMBOL_TLSLE24:
 	case SYMBOL_TLSLE32:
 	case SYMBOL_TLSLE48:
+	  if (TARGET_PECOFF && const_offset != 0)
+	    {
+	      aarch64_load_symref_and_add_offset (int_mode, dest, base,
+						  const_offset);
+	      return;
+	    }
+
 	  aarch64_load_symref_appropriately (dest, imm, sty);
 	  return;
 
