@@ -25,6 +25,8 @@ extern tree mingw_handle_selectany_attribute (tree *, tree, tree, int, bool *);
 extern void mingw_pe_asm_named_section (const char *, unsigned int, tree);
 extern void mingw_pe_declare_function_type (FILE *file, const char *name,
 	int pub);
+extern void mingw_pe_declare_object_type (FILE *file, const char *name,
+	int pub);
 extern void mingw_pe_encode_section_info (tree, rtx, int);
 extern void mingw_pe_file_end (void);
 extern void mingw_pe_maybe_record_exported_symbol (tree, const char *, int);
