@@ -415,6 +415,8 @@ mingw_pe_unique_section (tree decl, int reloc)
     prefix = ".text$";
   else if (decl_readonly_section (decl, reloc))
     prefix = ".rdata$";
+  else if (DECL_THREAD_LOCAL_P (decl))
+    prefix = ".tls$";
   else
     prefix = ".data$";
   len = strlen (name) + strlen (prefix);

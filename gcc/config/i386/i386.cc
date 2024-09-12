@@ -789,6 +789,20 @@ x86_64_elf_select_section (tree decl, int reloc,
   return default_elf_select_section (decl, reloc, align);
 }
 
+ATTRIBUTE_UNUSED static section *
+mingw_w64_pe_select_section (tree decl, int reloc, unsigned HOST_WIDE_INT align)
+{
+  if (TREE_CODE (decl) == VAR_DECL && DECL_THREAD_LOCAL_P (decl))
+    {
+      if (!DECL_P (decl))
+	decl = NULL_TREE;
+
+      return get_named_section (decl, ".tls$", reloc);
+    }
+  else
+    return default_select_section (decl, reloc, align);
+}
+
 /* Select a set of attributes for section NAME based on the properties
    of DECL and whether or not RELOC indicates that DECL's initializer
    might contain runtime relocations.  */
@@ -11170,6 +11184,9 @@ ix86_legitimate_constant_p (machine_mode mode, rtx x)
 	    x = XVECEXP (x, 0, 0);
 	    return (GET_CODE (x) == SYMBOL_REF
 		    && SYMBOL_REF_TLS_MODEL (x) == TLS_MODEL_LOCAL_DYNAMIC);
+	  case UNSPEC_SECREL32:
+	    x = XVECEXP (x, 0, 0);
+	    return GET_CODE (x) == SYMBOL_REF;
 	  default:
 	    return false;
 	  }
@@ -11306,6 +11323,9 @@ legitimate_pic_operand_p (rtx x)
 	    x = XVECEXP (inner, 0, 0);
 	    return (GET_CODE (x) == SYMBOL_REF
 		    && SYMBOL_REF_TLS_MODEL (x) == TLS_MODEL_LOCAL_EXEC);
+	  case UNSPEC_SECREL32:
+	    x = XVECEXP (inner, 0, 0);
+	    return GET_CODE (x) == SYMBOL_REF;
 	  case UNSPEC_MACHOPIC_OFFSET:
 	    return legitimate_pic_address_disp_p (x);
 	  default:
@@ -11486,6 +11506,9 @@ legitimate_pic_address_disp_p (rtx disp)
       disp = XVECEXP (disp, 0, 0);
       return (GET_CODE (disp) == SYMBOL_REF
 	      && SYMBOL_REF_TLS_MODEL (disp) == TLS_MODEL_LOCAL_DYNAMIC);
+    case UNSPEC_SECREL32:
+      disp = XVECEXP (disp, 0, 0);
+      return GET_CODE (disp) == SYMBOL_REF;
     }
 
   return false;
@@ -11763,6 +11786,7 @@ ix86_legitimate_address_p (machine_mode, rtx addr, bool strict,
 	  case UNSPEC_INDNTPOFF:
 	  case UNSPEC_NTPOFF:
 	  case UNSPEC_DTPOFF:
+	  case UNSPEC_SECREL32:
 	    break;
 
 	  default:
@@ -12165,6 +12189,14 @@ ix86_tls_module_base (void)
 rtx
 legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 {
+#if TARGET_WIN32_TLS
+  rtx base = gen_reg_rtx (Pmode);
+
+  emit_insn (gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2, gen_rtx_SET (base, gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const0_rtx), UNSPEC_TLS_WIN32)), gen_rtx_CLOBBER (VOIDmode, gen_rtx_SCRATCH (Pmode)))));
+
+  // Only 64-bit is supported
+  return gen_rtx_PLUS (Pmode, base, gen_rtx_ZERO_EXTEND (Pmode, gen_rtx_CONST (SImode, gen_rtx_UNSPEC (SImode, gen_rtvec (1, x), UNSPEC_SECREL32))));
+#else
   rtx dest, base, off;
   rtx pic = NULL_RTX, tp = NULL_RTX;
   machine_mode tp_mode = Pmode;
@@ -12403,6 +12435,7 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
     }
 
   return dest;
+#endif
 }
 
 /* Return true if the TLS address requires insn using integer registers.
@@ -12865,6 +12898,9 @@ output_pic_addr_const (FILE *file, rtx x, int code)
 	case UNSPEC_INDNTPOFF:
 	  fputs ("@indntpoff", file);
 	  break;
+	case UNSPEC_SECREL32:
+	  fputs ("@secrel32", file);
+	  break;
 #if TARGET_MACHO
 	case UNSPEC_MACHOPIC_OFFSET:
 	  putc ('-', file);
@@ -12890,7 +12926,11 @@ i386_output_dwarf_dtprel (FILE *file, int size, rtx x)
 {
   fputs (ASM_LONG, file);
   output_addr_const (file, x);
+#if TARGET_WIN32_TLS
+  fputs ("@secrel32", file);
+#else
   fputs ("@dtpoff", file);
+#endif
   switch (size)
     {
     case 4:
@@ -14642,6 +14682,10 @@ i386_asm_output_addr_const_extra (FILE *file, rtx x)
     case UNSPEC_INDNTPOFF:
       output_addr_const (file, op);
       fputs ("@indntpoff", file);
+      break;
+    case UNSPEC_SECREL32:
+      output_addr_const (file, op);
+      fputs ("@secrel32", file);
       break;
 #if TARGET_MACHO
     case UNSPEC_MACHOPIC_OFFSET:

@@ -135,3 +135,9 @@ along with GCC; see the file COPYING3.  If not see
    original mingw32.  */
 #undef TARGET_LIBC_HAS_FUNCTION
 #define TARGET_LIBC_HAS_FUNCTION gnu_libc_has_function
+
+#undef TARGET_ASM_SELECT_SECTION
+#define TARGET_ASM_SELECT_SECTION mingw_w64_pe_select_section
+
+#undef TARGET_WIN32_TLS
+#define TARGET_WIN32_TLS 1
