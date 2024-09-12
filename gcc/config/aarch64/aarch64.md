@@ -7405,6 +7405,13 @@
   DONE;
 })
 
+(define_insn "add_hioffset"
+  [(match_operand 0 "register_operand")
+   (match_operand 1 "const_int_operand")]
+  ""
+  "add %0, %0, (%1 & ~0xfffff) >> 12, lsl #12"
+)
+
 (define_insn "add_losym_<mode>"
   [(set (match_operand:P 0 "register_operand" "=r")
 	(lo_sum:P (match_operand:P 1 "register_operand" "r")

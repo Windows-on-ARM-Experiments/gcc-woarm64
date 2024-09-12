@@ -2896,7 +2896,30 @@ aarch64_load_symref_appropriately (rtx dest, rtx imm,
 	if (can_create_pseudo_p ())
 	  tmp_reg = gen_reg_rtx (mode);
 
-	emit_move_insn (tmp_reg, gen_rtx_HIGH (mode, copy_rtx (imm)));
+	do
+	  {
+	    if (TARGET_PECOFF)
+	      {
+		poly_int64 offset;
+		HOST_WIDE_INT const_offset;
+		strip_offset (imm, &offset);
+
+		if (offset.is_constant (&const_offset)
+		    && abs(const_offset) >= 1 << 20)
+		  {
+		    rtx const_int = imm;
+		    const_int = XEXP (const_int, 0);
+		    XEXP (const_int, 1) = GEN_INT(const_offset % (1 << 20));
+
+		    emit_move_insn (tmp_reg, gen_rtx_HIGH (mode, copy_rtx(imm)));
+		    emit_insn (gen_add_hioffset (tmp_reg, GEN_INT(const_offset)));
+		    break;
+		  }
+	      }
+
+	      emit_move_insn (tmp_reg, gen_rtx_HIGH (mode, copy_rtx (imm)));
+	  } while(0);
+
 	emit_insn (gen_add_losym (dest, tmp_reg, imm));
 	return;
       }
