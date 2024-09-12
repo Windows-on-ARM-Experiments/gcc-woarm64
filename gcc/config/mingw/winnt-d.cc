@@ -33,11 +33,14 @@ winnt_d_os_builtins (void)
   d_add_builtin_version ("Windows");
   d_add_builtin_version ("MinGW");
 
+#if defined(TARGET_AARCH64_MS_ABI)
+  d_add_builtin_version ("WinArm64");
+#else
   if (TARGET_64BIT && ix86_abi == MS_ABI)
     d_add_builtin_version ("Win64");
   else if (!TARGET_64BIT)
     d_add_builtin_version ("Win32");
-
+#endif
   d_add_builtin_version ("CRuntime_Microsoft");
 }
 
