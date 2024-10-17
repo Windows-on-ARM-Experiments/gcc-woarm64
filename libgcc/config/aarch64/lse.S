@@ -52,6 +52,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
  */
 
 #include "aarch64-asm.h"
+#undef L
+
 #include "auto-target.h"
 
 /* Tell the assembler to accept LSE instructions.  */
