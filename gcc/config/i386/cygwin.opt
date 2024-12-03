@@ -21,4 +21,7 @@
 pthread
 Driver
 
+rdynamic
+Driver
+
 ; Retain blank line above
