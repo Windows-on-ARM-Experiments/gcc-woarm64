@@ -294,7 +294,7 @@ struct gtm_thread
   // Invoked from assembly language, thus the "asm" specifier on
   // the name, avoiding complex name mangling.
   static uint32_t begin_transaction(uint32_t, const gtm_jmpbuf *)
-	__asm__(UPFX "GTM_begin_transaction") ITM_REGPARM;
+	__asm__(UPFX "GTM_begin_transaction") ITM_REGPARM ITM_SYSV;
   // In eh_cpp.cc
   void init_cpp_exceptions ();
   void revert_cpp_exceptions (gtm_transaction_cp *cp = 0);
@@ -328,7 +328,7 @@ namespace GTM HIDDEN {
 extern uint64_t gtm_spin_count_var;
 
 extern "C" uint32_t GTM_longjmp (uint32_t, const gtm_jmpbuf *, uint32_t)
-	ITM_NORETURN ITM_REGPARM;
+	ITM_NORETURN ITM_REGPARM ITM_SYSV;
 
 extern "C" void GTM_LB (const void *, size_t) ITM_REGPARM;
 
