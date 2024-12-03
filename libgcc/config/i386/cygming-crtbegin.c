@@ -146,7 +146,11 @@ __gcc_register_frame (void)
   /* If we use the __cxa_atexit method to register C++ dtors
      at object construction,  also use atexit to register eh frame
      info cleanup.  */
+#ifdef __CYGWIN__
+  __cxa_atexit(__gcc_deregister_frame, NULL, (void *)&__dso_handle);
+#else
   atexit(__gcc_deregister_frame);
+#endif /* __CYGWIN__ */
 #endif /* DEFAULT_USE_CXA_ATEXIT */
 }
 
