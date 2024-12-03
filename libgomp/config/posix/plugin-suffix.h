@@ -23,4 +23,5 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
+#define SONAME_PREFIX "lib"
 #define SONAME_SUFFIX(n) (".so." #n)

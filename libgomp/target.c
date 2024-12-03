@@ -5436,7 +5436,7 @@ gomp_target_fini (void)
 static void
 gomp_target_init (void)
 {
-  const char *prefix ="libgomp-plugin-";
+  const char *prefix = SONAME_PREFIX "gomp-plugin-";
   const char *suffix = SONAME_SUFFIX (1);
   const char *cur, *next;
   char *plugin_name;
