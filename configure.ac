@@ -2376,6 +2376,7 @@ if test -d ${srcdir}/gcc; then
         # is position independent code (PIC).
         case $target in
           *mingw*) ;;
+          *cygwin*) ;;
           *)
           case ${add_this_lang}:${language}:${host_shared} in
             yes:jit:no)
@@ -2399,7 +2400,7 @@ directories, to avoid imposing the performance cost of
               # Silently disable.
               add_this_lang=unsupported
               ;;
-	        esac
+	  esac
           ;;
         esac
 
