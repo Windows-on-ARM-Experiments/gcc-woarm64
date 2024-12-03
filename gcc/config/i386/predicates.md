@@ -215,6 +215,7 @@
 	switch (XINT (XEXP (op, 0), 1))
 	  {
 	  case UNSPEC_GOTPCREL:
+	    if (TARGET_PECOFF) break;
 	  case UNSPEC_DTPOFF:
 	  case UNSPEC_GOTNTPOFF:
 	  case UNSPEC_NTPOFF:
@@ -319,6 +320,10 @@
       /* Load the external function address via the GOT slot.  */
       if (ix86_force_load_from_GOT_p (op))
 	return false;
+
+      /* Dll-imported symbols are always external.  */
+      if (TARGET_DLLIMPORT_DECL_ATTRIBUTES && SYMBOL_REF_DLLIMPORT_P (op))
+        return false;
 
      /* For certain code models, the symbolic references are known to fit.  */
       return (ix86_cmodel == CM_SMALL
