@@ -63,4 +63,4 @@ create_code (gcc_jit_context *ctxt, void *user_data)
 }
 
 /* { dg-final { jit-verify-output-file-was-created "" } } */
-/* { dg-final { jit-verify-dynamic-library "hello from ./verify-dynamic-library.c.exe" } } */
+/* { dg-final { jit-verify-dynamic-library "hello from ./verify-dynamic-library.c.xdx" } } */

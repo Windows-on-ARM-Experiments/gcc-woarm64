@@ -495,7 +495,7 @@ proc jit-dg-test { prog do_what extra_tool_flags } {
     # This also ensures that the source name makes it into the
     # pass/fail output, so that we can distinguish e.g. which test-foo
     # is failing.
-    set output_file "[file tail $prog].exe"
+    set output_file "[file tail $prog].xcx"
     verbose "output_file: $output_file"
 
     # Create the test executable:
@@ -636,7 +636,7 @@ proc jit-dg-test { prog do_what extra_tool_flags } {
 	# Verify that a reproducer was generated
 	if { [file exists $generated_reproducer] == 1} {
 	    pass "found generated reproducer: $generated_reproducer"
-	    set output_file "${generated_reproducer}.exe"
+	    set output_file "${generated_reproducer}.xcx"
 	    # (this overwrites output_file)
 
 	    # Try to compile the generated reproducer
@@ -810,7 +810,7 @@ proc jit-verify-assembler { args } {
 
     # Name the built executable as OUTPUT_FILENAME with
     # ".exe" appended.
-    set executable_from_asm ${asm_filename}.exe
+    set executable_from_asm ${asm_filename}.xsx
     verbose "  executable_from_asm: ${executable_from_asm}"
 
     # Invoke the driver to assemble/link the .s file to the .exe
@@ -952,7 +952,7 @@ proc jit-verify-object { args } {
 
     # Name the linked executable as OUTPUT_FILENAME with
     # ".exe" appended.
-    set executable_from_obj ${obj_filename}.exe
+    set executable_from_obj ${obj_filename}.xox
     verbose "  executable_from_obj: ${executable_from_obj}"
 
     # Invoke the driver to link the .o file to the .exe
@@ -1004,7 +1004,7 @@ proc jit-verify-dynamic-library { args } {
     # Build a test executable from
     # verify-dynamic-library.c
     set test_src "verify-dynamic-library.c"
-    set test_executable ${test_src}.exe
+    set test_executable ${test_src}.xdx
     verbose "  test_executable: ${test_executable}"
 
     # Invoke the driver to build the test executable

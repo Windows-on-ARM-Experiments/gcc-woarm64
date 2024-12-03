@@ -10,4 +10,4 @@
 #include "create-code-for-hello-world-executable.h"
 
 /* { dg-final { jit-verify-output-file-was-created "" } } */
-/* { dg-final { jit-verify-assembler "hello from ./output-of-test-compile-to-assembler.c.s.exe" } } */
+/* { dg-final { jit-verify-assembler "hello from ./output-of-test-compile-to-assembler.c.s.xsx" } } */
