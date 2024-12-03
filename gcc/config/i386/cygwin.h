@@ -24,14 +24,12 @@ along with GCC; see the file COPYING3.  If not see
       builtin_define ("__CYGWIN__");				\
       if (!TARGET_64BIT)					\
 	builtin_define ("__CYGWIN32__");			\
-      builtin_define ("__unix__");				\
-      builtin_define ("__unix");				\
+      builtin_define_std ("unix");				\
     }								\
   while (0)
 
 #undef CPP_SPEC
 #define CPP_SPEC "%(cpp_cpu) %{posix:-D_POSIX_SOURCE} \
-  %{!ansi:-Dunix} \
   %{pthread:-D_REENTRANT} \
   %{mwin32:-DWIN32 -D_WIN32 -D__WIN32 -D__WIN32__ %{!ansi:-DWINNT}} \
   %{!nostdinc:%{!mno-win32:-idirafter ../include/w32api%s -idirafter ../../include/w32api%s}}\
