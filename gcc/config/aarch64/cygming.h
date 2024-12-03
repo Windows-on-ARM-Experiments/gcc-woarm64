@@ -77,11 +77,6 @@ along with GCC; see the file COPYING3.  If not see
 // #undef LOCAL_LABEL_PREFIX
 // #define LOCAL_LABEL_PREFIX (TARGET_64BIT ? "." : "")
 
-#include <stdbool.h>
-#ifdef __MINGW32__
-#include <stdio.h>
-#endif
-
 #define TARGET_ASM_NAMED_SECTION  mingw_pe_asm_named_section
 
 /* Select attributes for named sections.  */
@@ -92,24 +87,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef TARGET_SEH
 #define TARGET_SEH  1
-
-/* SEH support */
-extern void i386_pe_seh_init (FILE *);
-extern void i386_pe_seh_end_prologue (FILE *);
-// extern void aarch64_pe_seh_function_prologue (FILE *);
-// extern void aarch64_pe_seh_cold_init (FILE *, const char *);
-extern void i386_pe_seh_unwind_emit (FILE *, rtx_insn *);
-extern void i386_pe_seh_emit_except_personality (rtx);
-extern void i386_pe_seh_init_sections (void);
-// extern void aarch64_pe_seh_asm_final_postscan_insn (FILE *stream, rtx_insn *insn, rtx*, int);
- 
-/* In winnt */
-// extern void aarch64_print_reg (rtx, int, FILE*);
-extern void i386_pe_end_function (FILE *f, const char *, tree);
-extern void i386_pe_end_cold_function (FILE *f, const char *, tree);
-// extern void aarch64_pe_end_epilogue (FILE *file);
-// extern void aarch64_pe_begin_epilogue (FILE *file);
-extern void i386_pe_record_external_function (tree, const char *);
 
 #define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P mingw_pe_valid_dllimport_attribute_p
 
@@ -156,21 +133,14 @@ extern void i386_pe_record_external_function (tree, const char *);
 #define TARGET_OS_CPP_BUILTINS()					\
   do									\
     {									\
-      builtin_define ("__MSVCRT__");					\
-      builtin_define ("__MINGW32__");					\
-      builtin_define ("_WIN32");					\
       builtin_define ("__SEH__");                               \
-      builtin_define_std ("WIN32");					\
-      builtin_define_std ("WINNT");					\
       builtin_define_with_int_value ("_INTEGRAL_MAX_BITS",		\
 				TYPE_PRECISION (intmax_type_node));	\
-      builtin_define ("__MINGW64__");					\
-      builtin_define_std ("WIN64");					\
-      builtin_define ("_WIN64");					\
       builtin_define ("__stdcall=__attribute__((__stdcall__))");	\
       builtin_define ("__fastcall=__attribute__((__fastcall__))");	\
       builtin_define ("__thiscall=__attribute__((__thiscall__))");	\
       builtin_define ("__cdecl=__attribute__((__cdecl__))");		\
+      EXTRA_OS_CPP_BUILTINS ();						\
     }									\
   while (0)
 

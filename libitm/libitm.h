@@ -45,7 +45,11 @@ extern "C" {
 
 #define ITM_NORETURN	__attribute__((noreturn))
 #define ITM_PURE __attribute__((transaction_pure))
+#if defined(__i386__) || defined(__x86_64__)
 #define ITM_SYSV __attribute__((sysv_abi))
+#else
+#define ITM_SYSV
+#endif
 #ifdef _GLIBCXX_NOTHROW
 # define _ITM_NOTHROW _GLIBCXX_NOTHROW
 #elif !defined (__cplusplus)

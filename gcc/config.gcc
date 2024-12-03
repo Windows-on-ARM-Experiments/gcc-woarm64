@@ -1272,6 +1272,36 @@ aarch64*-*-gnu*)
         tmake_file="${tmake_file} aarch64/t-aarch64"
         tm_defines="${tm_defines}  TARGET_DEFAULT_ASYNC_UNWIND_TABLES=1"
 	;;
+aarch64-*-cygwin*)
+	tm_file="${tm_file} aarch64/aarch64-abi-ms.h"
+	tm_file="${tm_file} aarch64/aarch64-coff.h"
+	tm_file="${tm_file} aarch64/cygming.h"
+	tm_file="${tm_file} i386/cygwin.h"
+	tm_file="${tm_file} i386/cygwin-w64.h"
+	tm_file="${tm_file} i386/cygwin-stdint.h"
+	tm_file="${tm_file} mingw/winnt.h"
+	tm_file="${tm_file} mingw/winnt-dll.h"
+	xm_file=i386/xm-cygwin.h
+	tmake_file="${tmake_file} aarch64/t-aarch64"
+	tmake_file="${tmake_file} mingw/t-cygming t-slibgcc"
+	target_gtfiles="$target_gtfiles \$(srcdir)/config/mingw/winnt.cc"
+	target_gtfiles="$target_gtfiles \$(srcdir)/config/mingw/winnt-dll.cc"
+	extra_options="${extra_options} mingw/cygming.opt i386/cygwin.opt"
+	extra_objs="${extra_objs} winnt.o winnt-dll.o"
+	c_target_objs="${c_target_objs} msformat-c.o"
+	cxx_target_objs="${cxx_target_objs} winnt-cxx.o msformat-c.o"
+	d_target_objs="${d_target_objs} cygwin-d.o"
+	target_has_targetdm="yes"
+	aarch64_multilibs="llp64"
+	if test x$enable_threads = xyes; then
+		thread_file='posix'
+	fi
+	default_use_cxa_atexit=yes
+	use_gcc_stdint=wrap
+	tm_defines="${tm_defines} TARGET_64BIT=1 TARGET_CYGWIN64=1 TARGET_64BIT_MS_ABI=1 TARGET_AARCH64_MS_ABI=1"
+	TM_MULTILIB_CONFIG="${TM_MULTILIB_CONFIG},llp64"
+	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
+	;;
 aarch64-*-mingw*)
 	tm_file="${tm_file} aarch64/aarch64-abi-ms.h"
 	tm_file="${tm_file} aarch64/aarch64-coff.h"

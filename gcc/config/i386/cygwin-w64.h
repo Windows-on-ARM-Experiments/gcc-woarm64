@@ -50,7 +50,11 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef SUB_LINK_SPEC
 #undef SUB_LINK_ENTRY
+#if defined(TARGET_AARCH64_MS_ABI)
+#define SUB_LINK_SPEC "-m aarch64pe"
+#else
 #define SUB_LINK_SPEC "%{" SPEC_64 ":-m i386pep} %{" SPEC_32 ":-m i386pe}"
+#endif
 #define SUB_LINK_ENTRY "%{" SPEC_64 ":" SUB_LINK_ENTRY64 "} %{" SPEC_32 ":" SUB_LINK_ENTRY32 "}"
 
 #undef MULTILIB_DEFAULTS

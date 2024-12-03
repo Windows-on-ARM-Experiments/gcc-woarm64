@@ -42,6 +42,12 @@ along with GCC; see the file COPYING3.  If not see
 #define DEFINE_THREAD_MODEL
 #endif
 
+#if defined (TARGET_AARCH64_MS_ABI)
+# define ENABLE_TARGET_64BIT_BUILTINS 1
+#else
+# define ENABLE_TARGET_64BIT_BUILTINS (TARGET_64BIT && ix86_abi == MS_ABI)
+#endif
+
 /* See i386/crtdll.h for an alternative definition. _INTEGRAL_MAX_BITS
    is for compatibility with native compiler.  */
 #define EXTRA_OS_CPP_BUILTINS()					\
@@ -54,7 +60,7 @@ along with GCC; see the file COPYING3.  If not see
       builtin_define_std ("WINNT");				\
       builtin_define_with_int_value ("_INTEGRAL_MAX_BITS",	\
 				     TYPE_PRECISION (intmax_type_node));\
-      if (TARGET_64BIT && ix86_abi == MS_ABI)			\
+      if (ENABLE_TARGET_64BIT_BUILTINS)				\
 	{							\
 	  builtin_define ("__MINGW64__");			\
 	  builtin_define_std ("WIN64");				\

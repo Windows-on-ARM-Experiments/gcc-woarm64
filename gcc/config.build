@@ -53,7 +53,7 @@ case $build in
   hppa*64*-*-hpux11* )
     build_install_headers_dir=install-headers-cpio
     ;;
-  i[34567]86-*-cygwin* | x86_64-*-cygwin* )
+  i[34567]86-*-cygwin* | x86_64-*-cygwin* | aarch64-*-cygwin*)
     build_xm_file=i386/xm-cygwin.h
     build_exeext=.exe
     ;;

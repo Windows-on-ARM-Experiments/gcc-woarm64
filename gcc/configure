@@ -28949,7 +28949,7 @@ fi
 
     ;;
 
-  i[34567]86-*-* | x86_64-*-*)
+  i[34567]86-*-* | x86_64-*-* | aarch64-*-*)
     case $target_os in
       cygwin*)
 	# Full C++ conformance when using a shared libstdc++-v3 requires some
