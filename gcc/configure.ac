@@ -4482,6 +4482,65 @@ AS_HELP_STRING([--disable-fix-cortex-a53-843419],
         esac
       ],
     [])
+    case $target_os in
+      cygwin*)
+	# Full C++ conformance when using a shared libstdc++-v3 requires some
+	# support from the Cygwin DLL, which in more recent versions exports
+	# wrappers to aid in interposing and redirecting operators new, delete,
+	# etc., as per n2800 #17.6.4.6 [replacement.functions].  Check if we
+	# are configuring for a version of Cygwin that exports the wrappers.
+	if test x$host = x$target && test x$host_cpu = xaarch64; then
+	  AC_CHECK_FUNC([__wrap__Znaj],[gcc_ac_cygwin_dll_wrappers=yes],[gcc_ac_cygwin_dll_wrappers=no])
+	else
+	  # Can't check presence of libc functions during cross-compile, so
+	  # we just have to assume we're building for an up-to-date target.
+	  gcc_ac_cygwin_dll_wrappers=yes
+	fi
+	AC_DEFINE_UNQUOTED(USE_CYGWIN_LIBSTDCXX_WRAPPERS,
+	  [`if test $gcc_ac_cygwin_dll_wrappers = yes; then echo 1; else echo 0; fi`],
+	  [Define if you want to generate code by default that assumes that the
+	   Cygwin DLL exports wrappers to support libstdc++ function replacement.])
+    esac
+    case $target_os in
+      cygwin* | pe | mingw32*)
+	# Recent binutils allows the three-operand form of ".comm" on PE.  This
+	# definition is used unconditionally to initialise the default state of
+	# the target option variable that governs usage of the feature.
+	gcc_GAS_CHECK_FEATURE([.comm with alignment], gcc_cv_as_comm_has_align,,
+	  [.comm foo,1,32])
+	AC_DEFINE_UNQUOTED(HAVE_GAS_ALIGNED_COMM,
+	  [`if test $gcc_cv_as_comm_has_align = yes; then echo 1; else echo 0; fi`],
+	  [Define if your assembler supports specifying the alignment
+	   of objects allocated using the GAS .comm command.])
+	# Used for DWARF 2 in PE
+	gcc_GAS_CHECK_FEATURE([.secrel32 relocs],
+	  gcc_cv_as_aarch64_pe_secrel32,,
+[.text
+foo:	nop
+.data
+	.secrel32 foo],
+	  [if test x$gcc_cv_ld != x \
+	   && $gcc_cv_ld -o conftest conftest.o > /dev/null 2>&1; then
+	     gcc_cv_as_aarch64_pe_secrel32=yes
+	   fi
+	   rm -f conftest],
+	  [AC_DEFINE(HAVE_GAS_PE_SECREL32_RELOC, 1,
+	    [Define if your assembler and linker support 32-bit section relative relocs via '.secrel32 label'.])])
+	# Test if the assembler supports the extended form of the .section
+	# directive that specifies section alignment.  LTO support uses this,
+	# but normally only after installation, so we warn but don't fail the
+	# configure if LTO is enabled but the assembler does not support it.
+	gcc_GAS_CHECK_FEATURE([.section with alignment], gcc_cv_as_section_has_align,
+	  -fatal-warnings,[.section lto_test,"dr0"])
+	if test x$gcc_cv_as_section_has_align != xyes; then
+	  case ",$enable_languages," in
+	    *,lto,*)
+	      AC_MSG_WARN([LTO for $target requires binutils >= 2.20.1, but version found appears insufficient; LTO will not work until binutils is upgraded.])
+	      ;;
+	  esac
+	fi
+	;;
+    esac
     ;;
 
   # All TARGET_ABI_OSF targets.
@@ -4778,7 +4837,7 @@ foo:
     ;;
 
 changequote(,)dnl
-  i[34567]86-*-* | x86_64-*-* | aarch64-*-*)
+  i[34567]86-*-* | x86_64-*-*)
 changequote([,])dnl
     case $target_os in
       cygwin*)

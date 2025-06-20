@@ -28194,6 +28194,149 @@ if test "${enable_fix_cortex_a53_843419+set}" = set; then :
 
 fi
 
+    case $target_os in
+      cygwin*)
+	# Full C++ conformance when using a shared libstdc++-v3 requires some
+	# support from the Cygwin DLL, which in more recent versions exports
+	# wrappers to aid in interposing and redirecting operators new, delete,
+	# etc., as per n2800 #17.6.4.6 [replacement.functions].  Check if we
+	# are configuring for a version of Cygwin that exports the wrappers.
+	if test x$host = x$target && test x$host_cpu = xaarch64; then
+	  ac_fn_cxx_check_func "$LINENO" "__wrap__Znaj" "ac_cv_func___wrap__Znaj"
+if test "x$ac_cv_func___wrap__Znaj" = xyes; then :
+  gcc_ac_cygwin_dll_wrappers=yes
+else
+  gcc_ac_cygwin_dll_wrappers=no
+fi
+
+	else
+	  # Can't check presence of libc functions during cross-compile, so
+	  # we just have to assume we're building for an up-to-date target.
+	  gcc_ac_cygwin_dll_wrappers=yes
+	fi
+
+cat >>confdefs.h <<_ACEOF
+#define USE_CYGWIN_LIBSTDCXX_WRAPPERS `if test $gcc_ac_cygwin_dll_wrappers = yes; then echo 1; else echo 0; fi`
+_ACEOF
+
+    esac
+    case $target_os in
+      cygwin* | pe | mingw32*)
+	# Recent binutils allows the three-operand form of ".comm" on PE.  This
+	# definition is used unconditionally to initialise the default state of
+	# the target option variable that governs usage of the feature.
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking assembler for .comm with alignment" >&5
+$as_echo_n "checking assembler for .comm with alignment... " >&6; }
+if ${gcc_cv_as_comm_has_align+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  gcc_cv_as_comm_has_align=no
+  if test x$gcc_cv_as != x; then
+    $as_echo '.comm foo,1,32' > conftest.s
+    if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
+  { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; }
+    then
+	gcc_cv_as_comm_has_align=yes
+    else
+      echo "configure: failed program was" >&5
+      cat conftest.s >&5
+    fi
+    rm -f conftest.o conftest.s
+  fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_as_comm_has_align" >&5
+$as_echo "$gcc_cv_as_comm_has_align" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_GAS_ALIGNED_COMM `if test $gcc_cv_as_comm_has_align = yes; then echo 1; else echo 0; fi`
+_ACEOF
+
+	# Used for DWARF 2 in PE
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking assembler for .secrel32 relocs" >&5
+$as_echo_n "checking assembler for .secrel32 relocs... " >&6; }
+if ${gcc_cv_as_aarch64_pe_secrel32+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  gcc_cv_as_aarch64_pe_secrel32=no
+  if test x$gcc_cv_as != x; then
+    $as_echo '.text
+foo:	nop
+.data
+	.secrel32 foo' > conftest.s
+    if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
+  { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; }
+    then
+	if test x$gcc_cv_ld != x \
+	   && $gcc_cv_ld -o conftest conftest.o > /dev/null 2>&1; then
+	     gcc_cv_as_aarch64_pe_secrel32=yes
+	   fi
+	   rm -f conftest
+    else
+      echo "configure: failed program was" >&5
+      cat conftest.s >&5
+    fi
+    rm -f conftest.o conftest.s
+  fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_as_aarch64_pe_secrel32" >&5
+$as_echo "$gcc_cv_as_aarch64_pe_secrel32" >&6; }
+if test $gcc_cv_as_aarch64_pe_secrel32 = yes; then
+
+$as_echo "#define HAVE_GAS_PE_SECREL32_RELOC 1" >>confdefs.h
+
+fi
+
+	# Test if the assembler supports the extended form of the .section
+	# directive that specifies section alignment.  LTO support uses this,
+	# but normally only after installation, so we warn but don't fail the
+	# configure if LTO is enabled but the assembler does not support it.
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking assembler for .section with alignment" >&5
+$as_echo_n "checking assembler for .section with alignment... " >&6; }
+if ${gcc_cv_as_section_has_align+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  gcc_cv_as_section_has_align=no
+  if test x$gcc_cv_as != x; then
+    $as_echo '.section lto_test,"dr0"' > conftest.s
+    if { ac_try='$gcc_cv_as $gcc_cv_as_flags -fatal-warnings -o conftest.o conftest.s >&5'
+  { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; }
+    then
+	gcc_cv_as_section_has_align=yes
+    else
+      echo "configure: failed program was" >&5
+      cat conftest.s >&5
+    fi
+    rm -f conftest.o conftest.s
+  fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_as_section_has_align" >&5
+$as_echo "$gcc_cv_as_section_has_align" >&6; }
+
+
+	if test x$gcc_cv_as_section_has_align != xyes; then
+	  case ",$enable_languages," in
+	    *,lto,*)
+	      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: LTO for $target requires binutils >= 2.20.1, but version found appears insufficient; LTO will not work until binutils is upgraded." >&5
+$as_echo "$as_me: WARNING: LTO for $target requires binutils >= 2.20.1, but version found appears insufficient; LTO will not work until binutils is upgraded." >&2;}
+	      ;;
+	  esac
+	fi
+	;;
+    esac
     ;;
 
   # All TARGET_ABI_OSF targets.
@@ -28949,7 +29092,7 @@ fi
 
     ;;
 
-  i[34567]86-*-* | x86_64-*-* | aarch64-*-*)
+  i[34567]86-*-* | x86_64-*-*)
     case $target_os in
       cygwin*)
 	# Full C++ conformance when using a shared libstdc++-v3 requires some
