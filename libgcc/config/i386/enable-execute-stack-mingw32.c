@@ -23,7 +23,9 @@
    <http://www.gnu.org/licenses/>.  */
 
 #define WIN32_LEAN_AND_MEAN
+#if !defined(inhibit_libc)
 #include <stdlib.h>
+#endif
 #include <windows.h>
 
 extern void __enable_execute_stack (void *);
